@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RippaMathCore — 2D Coordinate Grid Example</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <script src="../RippaMathCore.js"></script>
+  <style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;}</style>
+</head>
+<body>
+<script>
+let cg;
+
+function setup() {
+  createCanvas(600, 600);
+  cg = new RippaMathCore.CoordinateGrid({
+    gridMin: -10,
+    gridMax: 10,
+    gameMode: false        // set true for target-practice game
+  });
+}
+
+function draw() {
+  background(255);
+  cg.draw();
+}
+
+function mousePressed()  { cg.mousePressed(); }
+function mouseDragged()  { cg.mouseDragged(); }
+function mouseReleased() { cg.mouseReleased(); }
+</script>
+</body>
+</html>

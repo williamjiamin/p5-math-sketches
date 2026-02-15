@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RippaMathCore — 3D Coordinate Example</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <script src="../RippaMathCore.js"></script>
+  <style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;}</style>
+</head>
+<body>
+<script>
+let c3;
+
+function setup() {
+  createCanvas(700, 500, WEBGL);
+  c3 = new RippaMathCore.Coordinate3D({
+    gridMin: -5,
+    gridMax: 5,
+    freeOrbit: true        // drag to orbit the camera
+  });
+  // Set an initial point
+  c3.setPoint(2, 3, 1);
+}
+
+function draw() {
+  background(240);
+  c3.draw();
+}
+
+function mousePressed()  { c3.mousePressed(); }
+function mouseDragged()  { c3.mouseDragged(); }
+function mouseReleased() { c3.mouseReleased(); }
+function mouseWheel(e)   { return c3.mouseWheel(e); }
+</script>
+</body>
+</html>

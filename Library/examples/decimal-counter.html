@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RippaMathCore — Decimal Counter Example</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <script src="../RippaMathCore.js"></script>
+  <style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;}</style>
+</head>
+<body>
+<script>
+let dc;
+
+function setup() {
+  createCanvas(800, 400);
+  dc = new RippaMathCore.DecimalCounter({
+    step: 0.1,            // count in 0.1 increments
+    showFormula: true,     // display the formula
+    showArches: true       // draw counting arches
+  });
+}
+
+function draw() {
+  background(250);
+  dc.draw();
+}
+
+function mousePressed()  { dc.mousePressed(); }
+function mouseDragged()  { dc.mouseDragged(); }
+function mouseReleased() { dc.mouseReleased(); }
+</script>
+</body>
+</html>

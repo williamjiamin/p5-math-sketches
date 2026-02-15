@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RippaMathCore.js — Interactive Math Visualization Library</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --accent: #3a7bd5;
+      --accent-light: #eaf1fc;
+      --text: #222;
+      --muted: #888;
+      --border: #e0e4ec;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0,0,0,.07);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background: linear-gradient(135deg, #3a7bd5, #00d2ff);
+      color: #fff;
+      padding: 32px 24px 28px;
+      text-align: center;
+    }
+    header h1 { font-size: 2rem; letter-spacing: .5px; }
+    header p { opacity: .88; margin-top: 6px; font-size: 1rem; }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      justify-content: center;
+      background: var(--card);
+      border-bottom: 2px solid var(--border);
+      position: sticky; top: 0; z-index: 10;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: 12px 22px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-size: .92rem;
+      font-weight: 600;
+      color: var(--muted);
+      border-bottom: 3px solid transparent;
+      transition: .2s;
+    }
+    .tab-btn:hover { color: var(--accent); }
+    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .panel { display: none; padding: 24px; max-width: 960px; margin: auto; }
+    .panel.active { display: block; }
+
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card h2 { font-size: 1.25rem; margin-bottom: 8px; }
+    .card p.desc { color: var(--muted); font-size: .92rem; margin-bottom: 14px; line-height: 1.5; }
+
+    .canvas-frame {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .canvas-frame iframe {
+      display: block;
+      width: 100%;
+      border: none;
+    }
+
+    pre {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: .85rem;
+      overflow-x: auto;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+    pre .kw  { color: #cba6f7; }
+    pre .fn  { color: #89b4fa; }
+    pre .str { color: #a6e3a1; }
+    pre .num { color: #fab387; }
+    pre .cmt { color: #6c7086; font-style: italic; }
+
+    footer {
+      text-align: center;
+      padding: 28px;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>RippaMathCore.js</h1>
+  <p>Interactive math visualizations built on p5.js</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="numberline">Number Line</button>
+  <button class="tab-btn" data-tab="decimal">Decimal Counter</button>
+  <button class="tab-btn" data-tab="absvalue">Absolute Value</button>
+  <button class="tab-btn" data-tab="distance">Distance</button>
+  <button class="tab-btn" data-tab="coord2d">2D Grid</button>
+  <button class="tab-btn" data-tab="coord3d">3D Coords</button>
+  <button class="tab-btn" data-tab="angle">Angle Explorer</button>
+</div>
+
+<!-- ====================== Number Line ====================== -->
+<div id="numberline" class="panel active">
+  <div class="card">
+    <h2>Interactive Number Line</h2>
+    <p class="desc">Drag the arrow marker along the line. Press <b>SPACE</b> to toggle snap-to-tick. <b>Scroll</b> to zoom in/out. Sparkle animations play when you land on an integer.</p>
+    <div class="canvas-frame">
+      <iframe src="examples/numberline.html" style="height:380px;"></iframe>
+    </div>
+    <pre><span class="kw">let</span> nl;
+<span class="kw">function</span> <span class="fn">setup</span>() {
+  createCanvas(<span class="num">800</span>, <span class="num">360</span>);
+  nl = <span class="kw">new</span> RippaMathCore.<span class="fn">NumberLine</span>({
+    min: <span class="num">-10</span>, max: <span class="num">10</span>,
+    interactive: <span class="kw">true</span>,
+    snap: <span class="kw">false</span>,
+    zoom: <span class="kw">true</span>,
+    animations: <span class="kw">true</span>,
+    showArrow: <span class="kw">true</span>
+  });
+}
+<span class="kw">function</span> <span class="fn">draw</span>()          { background(<span class="num">245</span>); nl.draw(); }
+<span class="kw">function</span> <span class="fn">mousePressed</span>()  { nl.mousePressed(); }
+<span class="kw">function</span> <span class="fn">mouseReleased</span>() { nl.mouseReleased(); }
+<span class="kw">function</span> <span class="fn">keyPressed</span>()    { nl.keyPressed(); }
+<span class="kw">function</span> <span class="fn">mouseWheel</span>(e)   { <span class="kw">return</span> nl.mouseWheel(e); }</pre>
+  </div>
+</div>
+
+<!-- ====================== Decimal Counter ====================== -->
+<div id="decimal" class="panel">
+  <div class="card">
+    <h2>Decimal Counter</h2>
+    <p class="desc">Click one of the red endpoints, then drag to count in 0.1-step arches. The formula updates live. Click <b>Try</b> for a new round.</p>
+    <div class="canvas-frame">
+      <iframe src="examples/decimal-counter.html" style="height:420px;"></iframe>
+    </div>
+    <pre><span class="kw">let</span> dc;
+<span class="kw">function</span> <span class="fn">setup</span>() {
+  createCanvas(<span class="num">800</span>, <span class="num">400</span>);
+  dc = <span class="kw">new</span> RippaMathCore.<span class="fn">DecimalCounter</span>({ step: <span class="num">0.1</span> });
+}
+<span class="kw">function</span> <span class="fn">draw</span>()          { background(<span class="num">250</span>); dc.draw(); }
+<span class="kw">function</span> <span class="fn">mousePressed</span>()  { dc.mousePressed(); }
+<span class="kw">function</span> <span class="fn">mouseDragged</span>()  { dc.mouseDragged(); }
+<span class="kw">function</span> <span class="fn">mouseReleased</span>() { dc.mouseReleased(); }</pre>
+  </div>
+</div>
+
+<!-- ====================== Absolute Value ====================== -->
+<div id="absvalue" class="panel">
+  <div class="card">
+    <h2>Absolute Value</h2>
+    <p class="desc">Drag the marker to see how far it is from zero. The absolute value <code>|x|</code> is shown as a bracket above. Click <b>New Distance</b> for a random starting position.</p>
+    <div class="canvas-frame">
+      <iframe src="examples/absolute-value.html" style="height:380px;"></iframe>
+    </div>
+    <pre><span class="kw">let</span> av;
+<span class="kw">function</span> <span class="fn">setup</span>() {
+  createCanvas(<span class="num">800</span>, <span class="num">360</span>);
+  av = <span class="kw">new</span> RippaMathCore.<span class="fn">AbsoluteValue</span>({ min: <span class="num">-20</span>, max: <span class="num">20</span> });
+}
+<span class="kw">function</span> <span class="fn">draw</span>()          { background(<span class="num">248</span>); av.draw(); }
+<span class="kw">function</span> <span class="fn">mousePressed</span>()  { av.mousePressed(); }
+<span class="kw">function</span> <span class="fn">mouseDragged</span>()  { av.mouseDragged(); }
+<span class="kw">function</span> <span class="fn">mouseReleased</span>() { av.mouseReleased(); }</pre>
+  </div>
+</div>
+
+<!-- ====================== Distance Between ====================== -->
+<div id="distance" class="panel">
+  <div class="card">
+    <h2>Distance Between Two Points</h2>
+    <p class="desc">Drag either <b>A</b> or <b>B</b>. The distance <code>|A - B|</code> is shown as a bracket above and as a formula below. Click <b>New Positions</b> for random values.</p>
+    <div class="canvas-frame">
+      <iframe src="examples/distance-between.html" style="height:400px;"></iframe>
+    </div>
+    <pre><span class="kw">let</span> db;
+<span class="kw">function</span> <span class="fn">setup</span>() {
+  createCanvas(<span class="num">800</span>, <span class="num">380</span>);
+  db = <span class="kw">new</span> RippaMathCore.<span class="fn">DistanceBetween</span>({ min: <span class="num">-20</span>, max: <span class="num">20</span> });
+}
+<span class="kw">function</span> <span class="fn">draw</span>()          { background(<span class="num">248</span>); db.draw(); }
+<span class="kw">function</span> <span class="fn">mousePressed</span>()  { db.mousePressed(); }
+<span class="kw">function</span> <span class="fn">mouseDragged</span>()  { db.mouseDragged(); }
+<span class="kw">function</span> <span class="fn">mouseReleased</span>() { db.mouseReleased(); }</pre>
+  </div>
+</div>
+
+<!-- ====================== 2D Coordinate Grid ====================== -->
+<div id="coord2d" class="panel">
+  <div class="card">
+    <h2>2D Coordinate Grid</h2>
+    <p class="desc">Drag the blue point. Coordinates snap to integers. Set <code>gameMode: true</code> for a target-practice game.</p>
+    <div class="canvas-frame">
+      <iframe src="examples/coordinate-grid.html" style="height:620px;"></iframe>
+    </div>
+    <pre><span class="kw">let</span> cg;
+<span class="kw">function</span> <span class="fn">setup</span>() {
+  createCanvas(<span class="num">600</span>, <span class="num">600</span>);
+  cg = <span class="kw">new</span> RippaMathCore.<span class="fn">CoordinateGrid</span>({
+    gridMin: <span class="num">-10</span>, gridMax: <span class="num">10</span>,
+    gameMode: <span class="kw">false</span>  <span class="cmt">// set true for target game</span>
+  });
+}
+<span class="kw">function</span> <span class="fn">draw</span>()          { background(<span class="num">255</span>); cg.draw(); }
+<span class="kw">function</span> <span class="fn">mousePressed</span>()  { cg.mousePressed(); }
+<span class="kw">function</span> <span class="fn">mouseDragged</span>()  { cg.mouseDragged(); }
+<span class="kw">function</span> <span class="fn">mouseReleased</span>() { cg.mouseReleased(); }</pre>
+  </div>
+</div>
+
+<!-- ====================== 3D Coordinate ====================== -->
+<div id="coord3d" class="panel">
+  <div class="card">
+    <h2>3D Coordinate System</h2>
+    <p class="desc">Uses WEBGL. <b>Drag</b> to orbit the camera, <b>scroll</b> to zoom. The point is at <code>(2, 3, 1)</code>. Call <code>c3.setPoint(x,y,z)</code> to move it.</p>
+    <div class="canvas-frame">
+      <iframe src="examples/coordinate-3d.html" style="height:520px;"></iframe>
+    </div>
+    <pre><span class="kw">let</span> c3;
+<span class="kw">function</span> <span class="fn">setup</span>() {
+  createCanvas(<span class="num">700</span>, <span class="num">500</span>, <span class="str">WEBGL</span>);
+  c3 = <span class="kw">new</span> RippaMathCore.<span class="fn">Coordinate3D</span>({
+    gridMin: <span class="num">-5</span>, gridMax: <span class="num">5</span>,
+    freeOrbit: <span class="kw">true</span>
+  });
+  c3.setPoint(<span class="num">2</span>, <span class="num">3</span>, <span class="num">1</span>);
+}
+<span class="kw">function</span> <span class="fn">draw</span>()          { background(<span class="num">240</span>); c3.draw(); }
+<span class="kw">function</span> <span class="fn">mousePressed</span>()  { c3.mousePressed(); }
+<span class="kw">function</span> <span class="fn">mouseDragged</span>()  { c3.mouseDragged(); }
+<span class="kw">function</span> <span class="fn">mouseReleased</span>() { c3.mouseReleased(); }
+<span class="kw">function</span> <span class="fn">mouseWheel</span>(e)   { <span class="kw">return</span> c3.mouseWheel(e); }</pre>
+  </div>
+</div>
+
+<!-- ====================== Angle Explorer ====================== -->
+<div id="angle" class="panel">
+  <div class="card">
+    <h2>Angle Explorer</h2>
+    <p class="desc">Drag the <b>purple handle</b> to adjust the angle. See the angle name (&ang;ABC, &ang;CBA, &ang;B), degree measurement, and type classification (acute, right, obtuse, straight, reflex, full). Click <b>quick-jump buttons</b> to snap to special angles like 30&deg;, 45&deg;, 60&deg;, 90&deg;, 180&deg;, 270&deg;, 360&deg;. Toggle <b>Snap</b> mode for precise positioning.</p>
+    <div class="canvas-frame">
+      <iframe src="examples/angle-explorer.html" style="height:620px;"></iframe>
+    </div>
+    <pre><span class="kw">let</span> ae;
+<span class="kw">function</span> <span class="fn">setup</span>() {
+  createCanvas(<span class="num">900</span>, <span class="num">600</span>);
+  ae = <span class="kw">new</span> RippaMathCore.<span class="fn">AngleExplorer</span>({
+    startAngle: <span class="num">45</span>,
+    snapMode: <span class="kw">false</span>,
+    showNaming: <span class="kw">true</span>,
+    showTypeInfo: <span class="kw">true</span>,
+    showQuickJump: <span class="kw">true</span>,
+    pointLabels: [<span class="str">'A'</span>, <span class="str">'B'</span>, <span class="str">'C'</span>]
+  });
+}
+<span class="kw">function</span> <span class="fn">draw</span>()          { background(<span class="num">248</span>, <span class="num">250</span>, <span class="num">255</span>); ae.draw(); }
+<span class="kw">function</span> <span class="fn">mousePressed</span>()  { ae.mousePressed(); }
+<span class="kw">function</span> <span class="fn">mouseDragged</span>()  { ae.mouseDragged(); }
+<span class="kw">function</span> <span class="fn">mouseReleased</span>() { ae.mouseReleased(); }</pre>
+  </div>
+</div>
+
+<footer>
+  RippaMathCore.js &mdash; built on <a href="https://p5js.org" target="_blank">p5.js</a>
+</footer>
+
+<script>
+/* Tab switching */
+document.querySelectorAll('.tab-btn').forEach(function (btn) {
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+    document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

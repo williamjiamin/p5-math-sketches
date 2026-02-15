@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RippaMathCore — Number Line Example</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <script src="../RippaMathCore.js"></script>
+  <style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;}</style>
+</head>
+<body>
+<script>
+let nl;
+
+function setup() {
+  createCanvas(800, 360);
+  nl = new RippaMathCore.NumberLine({
+    min: -10,
+    max: 10,
+    tickSpacing: 1,
+    interactive: true,
+    snap: false,          // press SPACE to toggle
+    zoom: true,           // scroll to zoom
+    animations: true,     // sparkle when landing on integers
+    showArrow: true       // arrow-shaped marker
+  });
+}
+
+function draw() {
+  background(245);
+  nl.draw();
+}
+
+function mousePressed()  { nl.mousePressed(); }
+function mouseReleased() { nl.mouseReleased(); }
+function keyPressed()    { nl.keyPressed(); }
+function mouseWheel(e)   { return nl.mouseWheel(e); }
+</script>
+</body>
+</html>

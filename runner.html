@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>p5 runner</title>
+    <style>
+      html, body { margin: 0; padding: 0; background: #f8f9fa; overflow: hidden; }
+      canvas { display: block; margin: 0 auto; }
+    </style>
+    <script>
+      // Prevent middle-click auto-scroll and context menu inside the runner
+      document.addEventListener('mousedown', function(e) {
+        if (e.button === 1) { e.preventDefault(); }
+      });
+      document.addEventListener('auxclick', function(e) {
+        if (e.button === 1) { e.preventDefault(); }
+      });
+    </script>
+  </head>
+  <body>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const sketch = params.get("sketch") || "";
+      const v = params.get("v") || "1.11.11";
+
+      // Load p5 first, then the sketch, so global-mode sketches work.
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = src;
+          s.onload = () => resolve();
+          s.onerror = () => reject(new Error("Failed to load: " + src));
+          document.head.appendChild(s);
+        });
+      }
+
+      (async () => {
+        if (!sketch) {
+          document.body.innerHTML = "<div style='font-family: Arial; padding: 16px; color:#444'>No sketch selected.</div>";
+          return;
+        }
+
+        try {
+          const cacheBust = "?t=" + Date.now();
+          await loadScript(`https://cdn.jsdelivr.net/npm/p5@${encodeURIComponent(v)}/lib/p5.min.js`);
+          try { await loadScript("assets-data.js" + cacheBust); } catch (e) { /* optional */ }
+          await loadScript(`./${sketch}` + cacheBust);
+        } catch (e) {
+          document.body.innerHTML =
+            "<pre style='font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 16px; color:#b00020; white-space: pre-wrap;'>" +
+            String(e && e.stack ? e.stack : e) +
+            "</pre>";
+        }
+      })();
+    </script>
+  </body>
+</html>
+
