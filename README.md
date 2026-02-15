@@ -102,6 +102,49 @@ When `index.html` loads, it reads the sketch list from `sketches-list.js` (loade
 
 If `sketches-list.js` is missing, it falls back to a hardcoded list inside `index.html`.
 
+## Live Demo (GitHub Pages)
+
+All sketches are deployed automatically and playable at:
+
+**https://williamjiamin.github.io/p5-math-sketches/**
+
+Every push to `master` triggers an automatic re-deploy via GitHub Actions.
+
+## Mobile Workflow (Coding & Testing from Your Phone)
+
+### Testing Sketches on Phone
+Just open **https://williamjiamin.github.io/p5-math-sketches/** in your phone's browser. Pick a sketch from the dropdown and it runs instantly — no install needed.
+
+### Editing Code from Phone
+You have several options, from easiest to most powerful:
+
+1. **github.dev (VS Code in browser)**
+   - Go to your repo: `https://github.com/williamjiamin/p5-math-sketches`
+   - Press the `.` key (period) or change `github.com` to `github.dev` in the URL
+   - Opens a full VS Code editor in your browser — works on phone!
+   - Commit changes directly from the editor
+
+2. **GitHub Codespaces (full cloud dev environment)**
+   - Go to your repo on GitHub
+   - Click **Code** → **Codespaces** → **Create codespace on master**
+   - Gives you a full VS Code with terminal in the cloud
+   - Free tier: 120 core-hours/month
+
+3. **GitHub Mobile App**
+   - Install from App Store / Play Store
+   - Browse files, make quick edits, commit, review issues & PRs
+   - Best for small/quick fixes
+
+4. **Cursor Web**
+   - Go to **https://www.cursor.com** and sign in
+   - Open your repo for AI-assisted editing with agent mode
+
+### Workflow: Edit → Push → Test
+1. Edit code using any method above
+2. Commit & push to `master`
+3. GitHub Actions auto-deploys (takes ~30 seconds)
+4. Refresh the GitHub Pages URL on your phone to see changes
+
 ## Requirements
 
 - A modern browser (Chrome, Firefox, Edge, Safari).
