@@ -30,6 +30,7 @@ var canvasW = 900, canvasH = 740;
 var originX, originY, cellPx;
 var gridLeft, gridRight, gridTop, gridBottom;
 var panelTop; // y where game panel begins
+var _mob12 = false; // mobile layout flag
 
 // ------ Phase Machine ------
 // Intro phases: xaxis_positive → xaxis_negative → y_axis
@@ -78,10 +79,10 @@ var particles = [];
 // Buttons & UI
 // ==============================
 var nextBtn     = { x:0, y:0, w:160, h:44 };
-var skipBtn     = { x:0, y:0, w:160, h:36 };
+var skipBtn     = { x:0, y:0, w:160, h:44 };
 var findBtn     = { x:0, y:0, w:150, h:52 };
-var newGameBtn  = { x:0, y:0, w:170, h:42 };
-var tryAgainBtn = { x:0, y:0, w:170, h:42 };
+var newGameBtn  = { x:0, y:0, w:170, h:44 };
+var tryAgainBtn = { x:0, y:0, w:170, h:44 };
 var replayBtn   = { x:0, y:0, w:140, h:34 };
 
 var xMinusBtn = { x:0, y:0, w:42, h:42 };
@@ -154,7 +155,12 @@ async function setup() {
 function updateLayout() {
   canvasW = width;
   canvasH = height;
-  var padLeft = 80, padRight = 80, padTop = 55, padBot = 120;
+  _mob12 = canvasW < 600;
+
+  var padLeft  = _mob12 ? 36 : 80;
+  var padRight = _mob12 ? 36 : 80;
+  var padTop   = _mob12 ? 36 : 55;
+  var padBot   = _mob12 ? 190 : 130;
   var areaW = canvasW - padLeft - padRight;
   var areaH = canvasH - padTop - padBot;
   cellPx = Math.min(areaW / gridSize, areaH / gridSize);
@@ -174,26 +180,57 @@ function updateLayout() {
   skipBtn.x = canvasW - skipBtn.w - 16;
   skipBtn.y = canvasH - skipBtn.h - 10;
 
-  // Game input row – properly spaced
-  // Layout: "X:" [-] [val] [+]  gap  "Y:" [-] [val] [+]  gap  [FIND!]
-  // Each group: label(22) + minus(42) + gap(6) + display(60) + gap(6) + plus(42) = 178
-  // Total: 178 + 50 + 178 + 40 + 150 = 596px → start at (900-596)/2 = 152
-  var inputRowY = panelTop + 48;
   var cx = canvasW / 2;
 
-  // X group, Y group, FIND button – proportional to canvas width (originally 900)
-  var r = canvasW / 900;
-  xMinusBtn.x = Math.round(174 * r); xMinusBtn.y = inputRowY - 21;
-  xPlusBtn.x  = Math.round(288 * r); xPlusBtn.y  = inputRowY - 21;
-  yMinusBtn.x = Math.round(402 * r); yMinusBtn.y = inputRowY - 21;
-  yPlusBtn.x  = Math.round(516 * r); yPlusBtn.y  = inputRowY - 21;
-  findBtn.x   = Math.round(600 * r); findBtn.y   = inputRowY - 26;
+  if (_mob12) {
+    // Mobile: touch-friendly, stacked vertically
+    var bSz = 44;
+    xMinusBtn.w = xMinusBtn.h = bSz;
+    xPlusBtn.w  = xPlusBtn.h  = bSz;
+    yMinusBtn.w = yMinusBtn.h = bSz;
+    yPlusBtn.w  = yPlusBtn.h  = bSz;
+    findBtn.w = 130; findBtn.h = 44;
 
-  // New Game / Try Again buttons
-  newGameBtn.x = cx - newGameBtn.w / 2;
-  newGameBtn.y = panelTop + 85;
-  tryAgainBtn.x = cx - tryAgainBtn.w / 2;
-  tryAgainBtn.y = panelTop + 85;
+    // Group: minus(44) + gap(4) + display(56) + gap(4) + plus(44) = 152
+    var grpW = bSz + 4 + 56 + 4 + bSz;
+    var grpLeft = cx - grpW / 2;
+
+    var xRowY = panelTop + 42;
+    xMinusBtn.x = grpLeft;               xMinusBtn.y = xRowY - bSz / 2;
+    xPlusBtn.x  = grpLeft + grpW - bSz;  xPlusBtn.y  = xRowY - bSz / 2;
+
+    var yRowY = panelTop + 88;
+    yMinusBtn.x = grpLeft;               yMinusBtn.y = yRowY - bSz / 2;
+    yPlusBtn.x  = grpLeft + grpW - bSz;  yPlusBtn.y  = yRowY - bSz / 2;
+
+    findBtn.x = cx - findBtn.w / 2;
+    findBtn.y = panelTop + 118;
+
+    newGameBtn.x  = cx - newGameBtn.w / 2;
+    newGameBtn.y  = panelTop + 36;
+    tryAgainBtn.x = cx - tryAgainBtn.w / 2;
+    tryAgainBtn.y = panelTop + 50;
+  } else {
+    // Desktop: single horizontal row
+    xMinusBtn.w = xMinusBtn.h = 42;
+    xPlusBtn.w  = xPlusBtn.h  = 42;
+    yMinusBtn.w = yMinusBtn.h = 42;
+    yPlusBtn.w  = yPlusBtn.h  = 42;
+    findBtn.w = 150; findBtn.h = 52;
+
+    var inputRowY = panelTop + 48;
+    var r = canvasW / 900;
+    xMinusBtn.x = Math.round(174 * r); xMinusBtn.y = inputRowY - 21;
+    xPlusBtn.x  = Math.round(288 * r); xPlusBtn.y  = inputRowY - 21;
+    yMinusBtn.x = Math.round(402 * r); yMinusBtn.y = inputRowY - 21;
+    yPlusBtn.x  = Math.round(516 * r); yPlusBtn.y  = inputRowY - 21;
+    findBtn.x   = Math.round(600 * r); findBtn.y   = inputRowY - 26;
+
+    newGameBtn.x  = cx - newGameBtn.w / 2;
+    newGameBtn.y  = panelTop + 85;
+    tryAgainBtn.x = cx - tryAgainBtn.w / 2;
+    tryAgainBtn.y = panelTop + 85;
+  }
 
   // Replay intro button (small, top-right corner)
   replayBtn.x = canvasW - replayBtn.w - 10;
@@ -409,28 +446,30 @@ function draw() {
 // Title Drawing
 // ==============================
 function drawIntroTitle(stepText) {
-  noStroke(); fill(30, 50, 80); textSize(22); textStyle(BOLD);
-  text("Coordinate Grid -- Explore with Rippa & Eon", canvasW / 2, 24);
+  noStroke(); fill(30, 50, 80); textSize(_mob12 ? 14 : 22); textStyle(BOLD);
+  text(_mob12 ? "Coordinate Grid" : "Coordinate Grid -- Explore with Rippa & Eon", canvasW / 2, _mob12 ? 18 : 24);
   textStyle(NORMAL);
-  fill(100); textSize(13);
-  text(stepText, canvasW / 2, 50);
+  fill(100); textSize(_mob12 ? 10 : 13);
+  text(stepText, canvasW / 2, _mob12 ? 32 : 50);
 }
 
 function drawGameTitle() {
-  noStroke(); fill(30, 50, 80); textSize(22); textStyle(BOLD);
-  text("Find Rippa! -- Coordinate Practice", canvasW / 2, 24);
+  var titleY = _mob12 ? 20 : 24;
+  var subY   = _mob12 ? 34 : 50;
+  noStroke(); fill(30, 50, 80); textSize(_mob12 ? 15 : 22); textStyle(BOLD);
+  text(_mob12 ? "Find Rippa!" : "Find Rippa! -- Coordinate Practice", canvasW / 2, titleY);
   textStyle(NORMAL);
-  fill(90); textSize(13);
+  fill(90); textSize(_mob12 ? 11 : 13);
   if (phase === "game_idle") {
-    text("Set the X and Y coordinates, then click FIND!", canvasW / 2, 50);
+    text(_mob12 ? "Set X & Y, then tap FIND!" : "Set the X and Y coordinates, then click FIND!", canvasW / 2, subY);
   } else if (phase === "game_move_x") {
-    text("Moving along the x-axis...", canvasW / 2, 50);
+    text("Moving along the x-axis...", canvasW / 2, subY);
   } else if (phase === "game_move_y") {
-    text("Now moving along the y-axis...", canvasW / 2, 50);
+    text("Now moving along the y-axis...", canvasW / 2, subY);
   } else if (phase === "game_celebrate") {
     // handled by drawHoorayText
   } else if (phase === "game_wrong") {
-    text("Hmm, Rippa isn't there...", canvasW / 2, 50);
+    text("Hmm, Rippa isn't there...", canvasW / 2, subY);
   }
 }
 
@@ -445,8 +484,8 @@ function drawGamePanel(disabled) {
   rect(15, panelTop, canvasW - 30, canvasH - panelTop - 6, 14);
 
   // Clue text: "Find Rippa at (x, y)!" with colored coordinates
-  var clueY = panelTop + 20;
-  noStroke(); textSize(17); textStyle(BOLD);
+  var clueY = panelTop + (_mob12 ? 12 : 20);
+  noStroke(); textSize(_mob12 ? 14 : 17); textStyle(BOLD);
   fill(50, 60, 80);
   var fullLabel = "Find Rippa at (" + rippaHideX + ", " + rippaHideY + ") !";
   textAlign(LEFT, CENTER);
@@ -469,40 +508,38 @@ function drawGamePanel(disabled) {
   textAlign(CENTER, CENTER);
   textStyle(NORMAL);
 
-  // Input row – positions come from updateLayout
-  var inputRowY = panelTop + 48;
   var alphaM = disabled ? 120 : 255;
+  var gap = _mob12 ? 4 : 6;
+  var dispW = _mob12 ? 56 : 60;
+  var dispH = _mob12 ? 36 : 38;
+  var lblOff = _mob12 ? 16 : 18;
 
-  // X label
-  noStroke(); fill(230, 100, 30, alphaM); textSize(15); textStyle(BOLD);
-  text("X:", xMinusBtn.x - 18, inputRowY);
+  // X row – y derived from button positions
+  var xCY = xMinusBtn.y + xMinusBtn.h / 2;
+  noStroke(); fill(230, 100, 30, alphaM); textSize(_mob12 ? 14 : 15); textStyle(BOLD);
+  text("X:", xMinusBtn.x - lblOff, xCY);
 
-  // X minus button
-  drawRoundBtn(xMinusBtn, "-", color(230, 100, 30), disabled);
-  // X value display (centered between minus and plus)
-  var xDispCX = xMinusBtn.x + xMinusBtn.w + 6 + 30; // = 174+42+6+30 = 252
+  drawRoundBtn(xMinusBtn, "\u2212", color(230, 100, 30), disabled);
+  var xDispCX = xMinusBtn.x + xMinusBtn.w + gap + dispW / 2;
   fill(255, 255, 255, disabled ? 180 : 255);
   stroke(230, 100, 30, alphaM); strokeWeight(2);
-  rect(xDispCX - 30, inputRowY - 19, 60, 38, 10);
-  noStroke(); fill(230, 100, 30, alphaM); textSize(20); textStyle(BOLD);
-  text(inputX, xDispCX, inputRowY);
-  // X plus button
+  rect(xDispCX - dispW / 2, xCY - dispH / 2, dispW, dispH, 10);
+  noStroke(); fill(230, 100, 30, alphaM); textSize(_mob12 ? 18 : 20); textStyle(BOLD);
+  text(inputX, xDispCX, xCY);
   drawRoundBtn(xPlusBtn, "+", color(230, 100, 30), disabled);
 
-  // Y label
-  noStroke(); fill(40, 120, 220, alphaM); textSize(15); textStyle(BOLD);
-  text("Y:", yMinusBtn.x - 18, inputRowY);
+  // Y row
+  var yCY = yMinusBtn.y + yMinusBtn.h / 2;
+  noStroke(); fill(40, 120, 220, alphaM); textSize(_mob12 ? 14 : 15); textStyle(BOLD);
+  text("Y:", yMinusBtn.x - lblOff, yCY);
 
-  // Y minus button
-  drawRoundBtn(yMinusBtn, "-", color(40, 120, 220), disabled);
-  // Y value display (centered between minus and plus)
-  var yDispCX = yMinusBtn.x + yMinusBtn.w + 6 + 30; // = 402+42+6+30 = 480
+  drawRoundBtn(yMinusBtn, "\u2212", color(40, 120, 220), disabled);
+  var yDispCX = yMinusBtn.x + yMinusBtn.w + gap + dispW / 2;
   fill(255, 255, 255, disabled ? 180 : 255);
   stroke(40, 120, 220, alphaM); strokeWeight(2);
-  rect(yDispCX - 30, inputRowY - 19, 60, 38, 10);
-  noStroke(); fill(40, 120, 220, alphaM); textSize(20); textStyle(BOLD);
-  text(inputY, yDispCX, inputRowY);
-  // Y plus button
+  rect(yDispCX - dispW / 2, yCY - dispH / 2, dispW, dispH, 10);
+  noStroke(); fill(40, 120, 220, alphaM); textSize(_mob12 ? 18 : 20); textStyle(BOLD);
+  text(inputY, yDispCX, yCY);
   drawRoundBtn(yPlusBtn, "+", color(40, 120, 220), disabled);
 
   textStyle(NORMAL);
@@ -842,14 +879,14 @@ function drawHoorayText(t) {
   ];
 
   push();
-  translate(canvasW / 2, 50);
+  translate(canvasW / 2, _mob12 ? 36 : 50);
   scale(s);
-  textSize(38); textStyle(BOLD);
+  textSize(_mob12 ? 24 : 38); textStyle(BOLD);
   for (var i = 0; i < letters.length; i++) {
     var ci = i % rainbow.length;
     var wobble = sin(millis() * 0.008 + i * 0.8) * 4;
     fill(rainbow[ci][0], rainbow[ci][1], rainbow[ci][2]);
-    text(letters[i], (i - 3) * 32, wobble);
+    text(letters[i], (i - 3) * (_mob12 ? 22 : 32), wobble);
   }
   textStyle(NORMAL);
   pop();
@@ -868,8 +905,8 @@ function drawStreakMessage(t) {
   if (msg === "") return;
   noStroke();
   fill(60, 60, 100, fadeIn * 230);
-  textSize(16); textStyle(BOLD);
-  text(msg, canvasW / 2, panelTop + 20);
+  textSize(_mob12 ? 13 : 16); textStyle(BOLD);
+  text(msg, canvasW / 2, panelTop + (_mob12 ? 12 : 20));
   textStyle(NORMAL);
 }
 
@@ -893,7 +930,7 @@ function drawWrongFeedback(t) {
   noStroke();
   fill(220, 60, 60, fadeT * 240);
   textSize(20); textStyle(BOLD);
-  text("Oops! Not here!", canvasW / 2, panelTop + 18);
+  text("Oops! Not here!", canvasW / 2, panelTop + (_mob12 ? 12 : 18));
   textStyle(NORMAL);
 }
 
@@ -913,7 +950,7 @@ function drawHintArrow(t) {
   noStroke();
   fill(100, 60, 160, fadeT * 200);
   textSize(14); textStyle(BOLD);
-  text("Hint: Try " + hints.join(" and "), canvasW / 2, panelTop + 40);
+  text("Hint: Try " + hints.join(" and "), canvasW / 2, panelTop + (_mob12 ? 28 : 40));
   textStyle(NORMAL);
 
   // Subtle arrow from wrong pos towards correct pos
@@ -955,6 +992,20 @@ function drawHintArrow(t) {
 function drawScoreDisplay() {
   var isGamePhase = phase.startsWith("game_");
   if (!isGamePhase) return;
+
+  if (_mob12) {
+    // Compact score bar at the very top of the canvas
+    noStroke(); textSize(11); textStyle(BOLD);
+    textAlign(RIGHT, CENTER);
+    fill(40, 80, 140);
+    var lbl = "Score:" + score + "  Streak:" + streak;
+    if (streak >= 3) lbl += "!!";
+    lbl += "  Best:" + bestStreak;
+    text(lbl, canvasW - 8, 10);
+    textAlign(CENTER, CENTER);
+    textStyle(NORMAL);
+    return;
+  }
 
   var sx = 25, sy = panelTop + 78;
   noStroke();

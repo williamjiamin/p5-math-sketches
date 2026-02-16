@@ -53,6 +53,7 @@ var initialized = false;
 var originX, originY, cellPx;
 var gridLeft, gridRight, gridTop, gridBottom;
 var panelX, panelW; // right-side control panel position & width
+var _mob3d = false; // mobile layout flag
 
 // Camera state (current + targets for smooth interpolation)
 var camAz = 0, camEl = 0, camOrtho = 0;
@@ -104,7 +105,7 @@ var PHASE_DUR = {
 // Buttons
 // ═══════════════════════════════════════════
 var nextBtn   = { x:0, y:0, w:160, h:44 };
-var skipBtn   = { x:0, y:0, w:140, h:36 };
+var skipBtn   = { x:0, y:0, w:140, h:44 };
 var replayBtn = { x:0, y:0, w:190, h:30 };
 var newPosBtn = { x:0, y:0, w:190, h:30 };
 
@@ -216,66 +217,109 @@ function windowResized() {
 // Layout
 // ═══════════════════════════════════════════
 function updateLayout() {
-  // ── Right-side control panel ──
-  panelW = 230;
-  panelX = canvasW - panelW;
+  _mob3d = canvasW < 700;
 
-  // ── 3D Viewport area (left of panel) ──
-  var viewportW = panelX;
-  var padLeft = 50, padRight = 30, padTop = 60, padBot = 30;
-  var areaW = viewportW - padLeft - padRight;
-  var areaH = canvasH - padTop - padBot;
-  cellPx = Math.min(areaW / gridSize, areaH / gridSize);
+  if (_mob3d) {
+    // ── Mobile: no side panel, compact bottom bar ──
+    panelW = 0;
+    panelX = canvasW;
 
-  originX = padLeft + areaW / 2;
-  originY = padTop + areaH / 2;
+    var padLeft = 24, padRight = 24, padTop = 44, padBot = 80;
+    var areaW = canvasW - padLeft - padRight;
+    var areaH = canvasH - padTop - padBot;
+    cellPx = Math.min(areaW / gridSize, areaH / gridSize);
+
+    originX = padLeft + areaW / 2;
+    originY = padTop + areaH / 2;
+
+    // Bottom bar button layout
+    var barTop = canvasH - 68;
+    var pL = 8;
+    var vbY = barTop + 6;
+    var vBtnW = Math.min(42, (canvasW - 24) / 9);
+    var vBtnH = 26;
+    var vNames = ['3D', 'XY', 'XZ', 'YZ'];
+    for (var i = 0; i < vNames.length; i++) {
+      viewBtns[vNames[i]].w = vBtnW;
+      viewBtns[vNames[i]].h = vBtnH;
+      viewBtns[vNames[i]].x = pL + i * (vBtnW + 3);
+      viewBtns[vNames[i]].y = vbY;
+    }
+    var lbX = pL + 4 * (vBtnW + 3) + 6;
+    var lNames = ['free', 'x', 'y', 'z'];
+    var lOff = 0;
+    for (var j = 0; j < lNames.length; j++) {
+      var lw = lNames[j] === 'free' ? 40 : 30;
+      lockBtns[lNames[j]].w = lw;
+      lockBtns[lNames[j]].h = vBtnH;
+      lockBtns[lNames[j]].x = lbX + lOff;
+      lockBtns[lNames[j]].y = vbY;
+      lOff += lw + 3;
+    }
+    var row2Y = barTop + 38;
+    var halfW = (canvasW - 24) / 2;
+    replayBtn.w = halfW - 4; replayBtn.h = 26;
+    replayBtn.x = 8; replayBtn.y = row2Y;
+    newPosBtn.w = halfW - 4; newPosBtn.h = 26;
+    newPosBtn.x = 12 + halfW; newPosBtn.y = row2Y;
+
+    // Numeric controls off-screen (hidden on mobile — use drag instead)
+    layoutNumRow('eon', -500, -500);
+    layoutNumRow('rippa', -500, -500);
+  } else {
+    // ── Desktop: right-side control panel ──
+    panelW = Math.min(230, Math.max(180, Math.round(canvasW * 0.24)));
+    panelX = canvasW - panelW;
+
+    var viewportW = panelX;
+    var padLeft = 50, padRight = 30, padTop = 60, padBot = 30;
+    var areaW = viewportW - padLeft - padRight;
+    var areaH = canvasH - padTop - padBot;
+    cellPx = Math.min(areaW / gridSize, areaH / gridSize);
+
+    originX = padLeft + areaW / 2;
+    originY = padTop + areaH / 2;
+
+    var pL = panelX + 16;
+    var pt = 12;
+    var vbY = pt + 18;
+    var vNames = ['3D', 'XY', 'XZ', 'YZ'];
+    for (var i = 0; i < vNames.length; i++) {
+      viewBtns[vNames[i]].w = 44;
+      viewBtns[vNames[i]].h = 28;
+      viewBtns[vNames[i]].x = pL + i * 49;
+      viewBtns[vNames[i]].y = vbY;
+    }
+    var lbY = pt + 60;
+    var lNames = ['free', 'x', 'y', 'z'];
+    var lOff = 0;
+    for (var j = 0; j < lNames.length; j++) {
+      lockBtns[lNames[j]].x = pL + lOff;
+      lockBtns[lNames[j]].y = lbY;
+      lockBtns[lNames[j]].h = 28;
+      lOff += lockBtns[lNames[j]].w + 5;
+    }
+    layoutNumRow('eon', pt + 118, pL);
+    layoutNumRow('rippa', pt + 224, pL);
+
+    var btnW = panelW - 34;
+    replayBtn.w = btnW; replayBtn.h = 30;
+    replayBtn.x = pL + 1; replayBtn.y = pt + 322;
+    newPosBtn.w = btnW; newPosBtn.h = 30;
+    newPosBtn.x = pL + 1; newPosBtn.y = pt + 358;
+  }
+
   gridLeft   = originX + gridMin * cellPx;
   gridRight  = originX + gridMax * cellPx;
   gridTop    = originY + gridMin * cellPx;
   gridBottom = originY + gridMax * cellPx;
 
-  // ── Intro buttons (centered in viewport area) ──
-  nextBtn.x = viewportW / 2 - nextBtn.w / 2;
-  nextBtn.y = canvasH - nextBtn.h - 14;
-  skipBtn.x = viewportW - skipBtn.w - 20;
-  skipBtn.y = canvasH - skipBtn.h - 14;
-
-  // ── Panel content layout ──
-  var pL = panelX + 16;
-  var pt = 12;
-
-  // View buttons
-  var vbY = pt + 18;
-  var vNames = ['3D', 'XY', 'XZ', 'YZ'];
-  for (var i = 0; i < vNames.length; i++) {
-    viewBtns[vNames[i]].x = pL + i * 49;
-    viewBtns[vNames[i]].y = vbY;
-  }
-
-  // Axis lock buttons
-  var lbY = pt + 60;
-  var lNames = ['free', 'x', 'y', 'z'];
-  var lOff = 0;
-  for (var j = 0; j < lNames.length; j++) {
-    lockBtns[lNames[j]].x = pL + lOff;
-    lockBtns[lNames[j]].y = lbY;
-    lOff += lockBtns[lNames[j]].w + 5;
-  }
-
-  // Eon numeric controls (vertical layout in panel)
-  layoutNumRow('eon', pt + 118, pL);
-
-  // Rippa numeric controls
-  layoutNumRow('rippa', pt + 224, pL);
-
-  // Action buttons (full panel width)
-  var btnW = panelW - 34;
-  replayBtn.w = btnW;
-  replayBtn.x = pL + 1;
-  replayBtn.y = pt + 322;
-  newPosBtn.w = btnW;
-  newPosBtn.x = pL + 1;
-  newPosBtn.y = pt + 358;
+  // Intro buttons (centered in viewport area)
+  var vpW = _mob3d ? canvasW : panelX;
+  nextBtn.x = vpW / 2 - nextBtn.w / 2;
+  nextBtn.y = canvasH - nextBtn.h - (_mob3d ? 78 : 14);
+  skipBtn.x = vpW - skipBtn.w - 20;
+  skipBtn.y = canvasH - skipBtn.h - (_mob3d ? 78 : 14);
 }
 
 function layoutNumRow(who, startY, pL) {
@@ -469,7 +513,7 @@ function draw() {
     shakeIntensity = rawT * rawT * 8;
     drawCharsOnXAxisShake(shakeIntensity);
     noStroke(); fill(180, 60, 60); textSize(16); textStyle(BOLD);
-    text("Charging up...", panelX / 2, canvasH - 200);
+    text("Charging up...", (_mob3d ? canvasW : panelX) / 2, canvasH - (_mob3d ? 100 : 200));
     textStyle(NORMAL);
     if (rawT >= 1) goToPhase("bounce");
   }
@@ -501,22 +545,22 @@ function draw() {
 // Title Drawing
 // ═══════════════════════════════════════════
 function drawIntroTitle(stepText) {
-  var cx = panelX / 2;
-  noStroke(); fill(30, 50, 80); textSize(22); textStyle(BOLD);
-  text("Coordinate System — Dimensional Upgrade", cx, 26);
+  var cx = _mob3d ? canvasW / 2 : panelX / 2;
+  noStroke(); fill(30, 50, 80); textSize(_mob3d ? 14 : 22); textStyle(BOLD);
+  text(_mob3d ? "Coordinate System" : "Coordinate System — Dimensional Upgrade", cx, _mob3d ? 16 : 26);
   textStyle(NORMAL);
-  fill(100); textSize(14);
-  text(stepText, cx, 52);
+  fill(100); textSize(_mob3d ? 10 : 14);
+  text(stepText, cx, _mob3d ? 30 : 52);
 }
 
 function draw3DTitle() {
-  var cx = panelX / 2;
-  noStroke(); fill(30, 50, 80); textSize(18); textStyle(BOLD);
-  text("3D Coordinate System", cx, 20);
+  var cx = _mob3d ? canvasW / 2 : panelX / 2;
+  noStroke(); fill(30, 50, 80); textSize(_mob3d ? 14 : 18); textStyle(BOLD);
+  text("3D Coordinate System", cx, _mob3d ? 14 : 20);
   textStyle(NORMAL);
-  fill(100); textSize(11);
-  var lockLabel = axisLock === 'free' ? 'Free drag' : axisLock.toUpperCase() + "-locked";
-  text("View: " + currentView + "  |  " + lockLabel + "  |  Drag characters or use panel controls", cx, 40);
+  fill(100); textSize(_mob3d ? 9 : 11);
+  var lockLabel = axisLock === 'free' ? 'Free' : axisLock.toUpperCase() + "-lock";
+  text("View:" + currentView + " | " + lockLabel + (_mob3d ? " | Drag to move" : " | Drag characters or use panel controls"), cx, _mob3d ? 28 : 40);
 }
 
 // ═══════════════════════════════════════════
@@ -537,13 +581,13 @@ function drawZAxisTransition(rawT, t) {
   zAxisVis = easeOut(constrain(rawT / 0.9, 0, 1));
 
   // Title
-  var cx = panelX / 2;
+  var cx = _mob3d ? canvasW / 2 : panelX / 2;
   var titleAlpha = constrain(rawT * 4, 0, 1);
-  noStroke(); fill(30, 50, 80, titleAlpha * 255); textSize(22); textStyle(BOLD);
-  text("Stage 3: Entering the third dimension!", cx, 26);
+  noStroke(); fill(30, 50, 80, titleAlpha * 255); textSize(_mob3d ? 14 : 22); textStyle(BOLD);
+  text(_mob3d ? "Entering 3D!" : "Stage 3: Entering the third dimension!", cx, _mob3d ? 16 : 26);
   textStyle(NORMAL);
-  fill(100, 100, 100, titleAlpha * 255); textSize(14);
-  text("The z-axis emerges — welcome to 3D space!", cx, 52);
+  fill(100, 100, 100, titleAlpha * 255); textSize(_mob3d ? 10 : 14);
+  text(_mob3d ? "Z-axis emerges — welcome to 3D!" : "The z-axis emerges — welcome to 3D space!", cx, _mob3d ? 30 : 52);
 
   // Draw 3D grid with animated z-axis
   draw3DGrid(1.0, zAxisVis);
@@ -898,6 +942,11 @@ function drawCharacterAtPixel(px, py, img, label, col, scl, coordX, coordY, coor
 // Control Panel (Interactive phase)
 // ═══════════════════════════════════════════
 function drawControlPanel() {
+  if (_mob3d) {
+    drawMobileBar();
+    return;
+  }
+
   // ── Panel background (full-height right side) ──
   fill(242, 245, 252, 245);
   stroke(195, 208, 228);
@@ -947,6 +996,19 @@ function drawControlPanel() {
   line(pL, pt + 310, pR, pt + 310);
 
   // ── Action buttons ──
+  drawReplayButton();
+  drawNewPosButton();
+}
+
+function drawMobileBar() {
+  var barTop = canvasH - 68;
+  fill(242, 245, 252, 235);
+  stroke(195, 208, 228);
+  strokeWeight(1);
+  rect(0, barTop - 2, canvasW, 70, 12, 12, 0, 0);
+
+  drawViewButtons();
+  drawAxisLockButtons();
   drawReplayButton();
   drawNewPosButton();
 }
@@ -1096,8 +1158,8 @@ function drawInfoText() {
   var dz = Math.abs(rippaZ - eonZ);
   var dist3d = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
-  var bx = 12, by = canvasH - 78;
-  var bw = 210, bh = 66;
+  var bx = 12, by = _mob3d ? canvasH - 68 - 72 : canvasH - 78;
+  var bw = _mob3d ? 180 : 210, bh = 66;
 
   // Background
   fill(255, 255, 255, 210);

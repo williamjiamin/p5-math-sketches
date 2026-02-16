@@ -29,7 +29,7 @@ let isDragging = false;
 let aValue = 14;
 
 // UI (canvas button)
-let tryBtn = { x: 20, y: 20, w: 90, h: 36 };
+let tryBtn = { x: 20, y: 20, w: 90, h: 44 };
 
 function setup() {
   createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));

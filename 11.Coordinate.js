@@ -65,9 +65,9 @@ let eonBounceX, eonBounceY, rippaBounceX, rippaBounceY;
 // Buttons
 // ==============================
 const nextBtn   = { x: 0, y: 0, w: 160, h: 44 };
-const replayBtn = { x: 0, y: 0, w: 160, h: 42 };
-const newPosBtn = { x: 0, y: 0, w: 180, h: 42 };
-const skipBtn   = { x: 0, y: 0, w: 140, h: 36 };
+const replayBtn = { x: 0, y: 0, w: 160, h: 44 };
+const newPosBtn = { x: 0, y: 0, w: 180, h: 44 };
+const skipBtn   = { x: 0, y: 0, w: 140, h: 44 };
 
 // ==============================
 // Images

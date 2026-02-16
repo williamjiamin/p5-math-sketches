@@ -27,7 +27,7 @@ let personBValue = 7;   // Rippa
 let dragTarget = null;  // "A" | "B" | null
 let isDragging = false;
 
-const newDistBtn = { x: 0, y: 0, w: 160, h: 40 };
+const newDistBtn = { x: 0, y: 0, w: 160, h: 44 };
 
 let imgKid, imgMe;
 const profileRadius = 32;

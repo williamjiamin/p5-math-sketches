@@ -49,7 +49,7 @@ var QUICK_ANGLES = [30, 45, 60, 90, 120, 180, 270, 360];
 var nameBtns = [];
 
 // Snap toggle button (bottom bar)
-var snapBtn = { x: 0, y: 0, w: 130, h: 34 };
+var snapBtn = { x: 0, y: 0, w: 130, h: 44 };
 
 // Active naming style (0=∠ABC, 1=∠CBA, 2=∠B)
 var activeNameStyle = 0;
@@ -120,7 +120,7 @@ function updateLayout() {
 
   // ── Bottom bar: quick-jump buttons + snap toggle ──
   var barY = canvasH - BOTTOM_H + 14;
-  var btnW = 56, btnH = 32, btnGap = 6;
+  var btnW = 56, btnH = 44, btnGap = 6;
   var totalBtnW = QUICK_ANGLES.length * (btnW + btnGap) - btnGap;
   // Center the buttons + snap toggle in the canvas
   var groupW = totalBtnW + 20 + snapBtn.w;
@@ -140,7 +140,7 @@ function updateLayout() {
 
   // ── Left panel: naming buttons ──
   var nBtnW = LEFT_W - 36;
-  var nBtnH = 40;
+  var nBtnH = 44;
   var nGap = 8;
   var nStartY = TOP_H + 90;
   var nCenterX = LEFT_W / 2;

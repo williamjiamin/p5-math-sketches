@@ -34,9 +34,9 @@ let animStepStart = 0;  // millis() when current step began
 const STEP_MS = { step1: 1200, step2: 1200, step3: 2200, step4: 999999 };
 
 // Buttons
-const newDistBtn = { x: 0, y: 0, w: 160, h: 40 };
+const newDistBtn = { x: 0, y: 0, w: 160, h: 44 };
 const calcBtn    = { x: 0, y: 0, w: 180, h: 44 };
-const resetBtn   = { x: 0, y: 0, w: 140, h: 38 };
+const resetBtn   = { x: 0, y: 0, w: 140, h: 44 };
 
 let imgKid, imgMe;
 const profileRadius = 30;
