@@ -2,15 +2,18 @@
 // State & Configuration
 // ==============================
 
+const ORIG_W = 800;
+const ORIG_H = 600;
+
 // Variables for the dot position and dragging
-let dotX = 400;            // Starting position (center of canvas)
+let dotX;                 // Starting position (center of axis)
 let isDragging = false;
 let snapToTick = false;   // Toggle between snap and smooth mode
 
 // Axis settings
-let axisY = 400;          // Y position of the axis
-let axisStartX = 100;     // Left edge of axis
-let axisEndX = 700;       // Right edge of axis
+let axisY;
+let axisStartX;
+let axisEndX;
 let minValue = 0;        // Minimum value on axis
 let maxValue = 10;       // Maximum value on axis
 let tickSpacing = 1;     // Space between main ticks
@@ -29,8 +32,23 @@ let lastIntegerValue = -1;
 // ==============================
 
 function setup() {
-  createCanvas(800, 600);
+  createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
   textAlign(CENTER, CENTER);
+  updateAxisLayout();
+  dotX = map(5, minValue, maxValue, axisStartX, axisEndX);
+}
+
+function windowResized() {
+  resizeCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
+  let value = map(dotX, axisStartX, axisEndX, minValue, maxValue);
+  updateAxisLayout();
+  dotX = map(value, minValue, maxValue, axisStartX, axisEndX);
+}
+
+function updateAxisLayout() {
+  axisY = height * 0.67;
+  axisStartX = width * 0.125;
+  axisEndX = width * 0.875;
 }
 
 function draw() {
@@ -304,8 +322,8 @@ function drawModeIndicator() {
   textSize(16);
   textStyle(NORMAL);
   textAlign(LEFT);
-  text("Mode: " + (snapToTick ? "SNAP TO TICK" : "SMOOTH"), 20, 30);
-  text("(Press SPACE to toggle)", 20, 50);
+  text("Mode: " + (snapToTick ? "SNAP TO TICK" : "SMOOTH"), width * 0.025, height * 0.05);
+  text("(Press SPACE to toggle)", width * 0.025, height * 0.083);
 }
 
 function mousePressed() {

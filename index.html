@@ -2,20 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>p5.js Sketch Launcher</title>
+    <title>RippaMathCore — Sketch Launcher</title>
     <style>
+      *, *::before, *::after { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
       body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
         background: #f5efe6;
-        padding: 12px;
-        box-sizing: border-box;
+        padding: 8px;
         display: flex;
         flex-direction: column;
+        -webkit-tap-highlight-color: transparent;
       }
       .container {
         max-width: 1400px;
@@ -32,19 +33,19 @@
         min-height: 0;
       }
       .header {
-        background: #d4b896;
+        background: linear-gradient(135deg, #d4b896 0%, #c4a87e 100%);
         color: #3d352b;
-        padding: 16px 24px;
+        padding: 12px 16px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 16px;
+        gap: 12px;
         flex-wrap: wrap;
       }
       .header-left {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 12px;
         flex-wrap: wrap;
       }
       .profile-row {
@@ -53,8 +54,8 @@
         gap: 10px;
       }
       .profile-pic {
-        width: 42px;
-        height: 42px;
+        width: 38px;
+        height: 38px;
         border-radius: 50%;
         object-fit: cover;
         border: 2px solid rgba(255,255,255,0.95);
@@ -64,28 +65,66 @@
         font-size: 11px;
         color: #5c5042;
         margin-top: 2px;
-        font-weight: 500;
+        font-weight: 600;
       }
       .profile-wrap {
         display: flex;
         flex-direction: column;
         align-items: center;
       }
-      .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-      label { font-size: 14px; font-weight: 600; color: #3d352b; }
+      .brand {
+        font-size: 16px;
+        font-weight: 700;
+        color: #3d352b;
+        letter-spacing: 0.3px;
+      }
+      .hint {
+        color: #6d5f50;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .control-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #3d352b;
+        white-space: nowrap;
+      }
       select {
-        padding: 10px 12px;
+        padding: 8px 10px;
         font-size: 14px;
         border-radius: 8px;
         border: 1px solid rgba(61, 53, 43, 0.25);
-        background: rgba(255,255,255,0.7);
+        background: rgba(255,255,255,0.85);
         color: #3d352b;
         outline: none;
+        min-width: 0;
+        max-width: 200px;
+        -webkit-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='%233d352b' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        padding-right: 28px;
+      }
+      select:focus {
+        border-color: #a08060;
+        box-shadow: 0 0 0 2px rgba(160,128,96,0.2);
       }
       select option { background: #fdfbf7; color: #3d352b; }
       .body {
         background: #f0ebe3;
-        padding: 10px;
+        padding: 6px;
         flex: 1;
         min-height: 0;
         display: flex;
@@ -100,10 +139,51 @@
         background: #fff;
         box-shadow: inset 0 0 0 1px rgba(180, 160, 140, 0.15);
       }
-      .hint {
-        color: #5c5042;
-        font-size: 12px;
-        font-weight: 500;
+
+      /* ========= Mobile Responsive ========= */
+      @media (max-width: 600px) {
+        body { padding: 4px; }
+        .container { border-radius: 10px; }
+        .header {
+          padding: 10px 12px;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 8px;
+        }
+        .header-left {
+          justify-content: center;
+          gap: 10px;
+        }
+        .brand { font-size: 14px; text-align: center; }
+        .hint { text-align: center; font-size: 11px; }
+        .controls {
+          justify-content: center;
+          gap: 6px;
+        }
+        .control-group { flex: 1; min-width: 0; }
+        select {
+          width: 100%;
+          max-width: none;
+          font-size: 16px; /* prevents iOS zoom */
+          padding: 10px 28px 10px 10px;
+        }
+        label { font-size: 12px; }
+        .profile-pic { width: 32px; height: 32px; }
+        .body { padding: 4px; }
+        iframe { border-radius: 8px; }
+      }
+
+      @media (max-width: 380px) {
+        .profile-row { gap: 6px; }
+        .profile-pic { width: 28px; height: 28px; }
+        .profile-label { font-size: 10px; }
+        .brand { font-size: 13px; }
+      }
+
+      /* Tablet tweaks */
+      @media (min-width: 601px) and (max-width: 900px) {
+        .header { padding: 12px 16px; }
+        select { font-size: 15px; }
       }
     </style>
   </head>
@@ -121,24 +201,30 @@
               <span class="profile-label">Eon</span>
             </div>
           </div>
-          <span class="hint">Sketch launcher — pick a sketch below.</span>
+          <div>
+            <div class="brand">RippaMathCore</div>
+            <div class="hint">Pick a sketch below to launch</div>
+          </div>
         </div>
         <div class="controls">
-          <label for="sketch">Sketch</label>
-          <select id="sketch">
-            <option value="">-- Loading... --</option>
-          </select>
-
-          <label for="ver">p5 version</label>
-          <select id="ver">
-            <option value="1.11.11">1.11.11</option>
-            <option value="2.2.0">2.2.0</option>
-            <option value="latest">latest</option>
-          </select>
+          <div class="control-group">
+            <label for="sketch">Sketch</label>
+            <select id="sketch">
+              <option value="">-- Loading... --</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="ver">p5</label>
+            <select id="ver">
+              <option value="1.11.11">1.11.11</option>
+              <option value="2.2.0">2.2.0</option>
+              <option value="latest">latest</option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="body">
-        <iframe id="frame" title="sketch runner"></iframe>
+        <iframe id="frame" title="sketch runner" allow="autoplay"></iframe>
       </div>
     </div>
 
@@ -146,7 +232,6 @@
          Regenerate with:  node update-sketches.js
          Or watch mode:    node update-sketches.js --watch -->
     <script>
-      // Dynamically load sketches-list.js with cache-busting
       (function() {
         var s = document.createElement("script");
         s.src = "sketches-list.js?t=" + Date.now();
@@ -155,27 +240,20 @@
     </script>
 
     <script>
-      const sketchEl = document.getElementById("sketch");
-      const verEl = document.getElementById("ver");
-      const frame = document.getElementById("frame");
+      var sketchEl = document.getElementById("sketch");
+      var verEl = document.getElementById("ver");
+      var frame = document.getElementById("frame");
 
-      // Turn filename into dropdown label (e.g. "1.The Number Line.js" -> "1. The Number Line")
       function labelFor(filename) {
-        const base = filename.replace(/\.js$/i, "");
+        var base = filename.replace(/\.js$/i, "");
         return base.replace(/^(\d+)\./, "$1. ");
       }
 
-      // Get sketch list from window.SKETCH_LIST (set by sketches-list.js).
-      // Falls back to hardcoded list if the file is missing.
       function getSketchList() {
-        let list = [];
-
-        // 1) From sketches-list.js (<script> tag — works on file:// and http://)
+        var list = [];
         if (window.SKETCH_LIST && Array.isArray(window.SKETCH_LIST) && window.SKETCH_LIST.length > 0) {
           list = window.SKETCH_LIST.slice();
         }
-
-        // 2) Hardcoded fallback (only if sketches-list.js is missing/empty)
         if (list.length === 0) {
           list.push(
             "1.The Number Line.js", "2.Interaction Line.js", "3.Make your own shape.js",
@@ -185,15 +263,14 @@
             "15.Angle.js"
           );
         }
-
-        list.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        list.sort(function(a, b) { return a.localeCompare(b, undefined, { numeric: true }); });
         return list;
       }
 
       function populateSketchSelect(filenames) {
         sketchEl.innerHTML = '<option value="">-- Choose --</option>';
-        filenames.forEach((fn) => {
-          const opt = document.createElement("option");
+        filenames.forEach(function(fn) {
+          var opt = document.createElement("option");
           opt.value = fn;
           opt.textContent = labelFor(fn);
           sketchEl.appendChild(opt);
@@ -201,14 +278,14 @@
       }
 
       function update() {
-        const sketch = sketchEl.value;
-        const v = verEl.value;
+        var sketch = sketchEl.value;
+        var v = verEl.value;
         if (!sketch) {
           frame.removeAttribute("src");
-          frame.srcdoc = "<div style='font-family: Arial; padding: 16px; color:#444'>Choose a sketch above.</div>";
+          frame.srcdoc = "<div style='font-family:system-ui;padding:24px;color:#888;text-align:center;'>Choose a sketch above to get started.</div>";
           return;
         }
-        const url = `runner.html?sketch=${encodeURIComponent(sketch)}&v=${encodeURIComponent(v)}`;
+        var url = "runner.html?sketch=" + encodeURIComponent(sketch) + "&v=" + encodeURIComponent(v);
         frame.removeAttribute("srcdoc");
         frame.src = url;
       }
@@ -216,19 +293,15 @@
       sketchEl.addEventListener("change", update);
       verEl.addEventListener("change", update);
 
-      // Wait briefly for sketches-list.js to load (it's dynamic now), then populate
       function initSketches() {
-        const list = getSketchList();
+        var list = getSketchList();
         populateSketchSelect(list);
-
-        // Auto-load the last sketch (most recently added)
         if (list.length > 0) {
           sketchEl.value = list[list.length - 1];
         }
         update();
       }
 
-      // Try immediately, then retry after a short delay for the dynamic script
       if (window.SKETCH_LIST && window.SKETCH_LIST.length > 0) {
         initSketches();
       } else {

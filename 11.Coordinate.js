@@ -11,6 +11,7 @@
 // ==============================
 // Config
 // ==============================
+const ORIG_W = 900, ORIG_H = 740;
 const gridMin = -10;
 const gridMax = 10;
 const gridSize = gridMax - gridMin; // 20
@@ -112,7 +113,7 @@ function easeInBack(t) {
 // Setup
 // ==============================
 async function setup() {
-  createCanvas(canvasW, canvasH);
+  createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
   textFont("Arial");
   textAlign(CENTER, CENTER);
   updateLayout();
@@ -137,6 +138,8 @@ async function setup() {
 // Layout
 // ==============================
 function updateLayout() {
+  canvasW = width;
+  canvasH = height;
   var padLeft = 90, padRight = 90, padTop = 100, padBot = 100;
   var areaW = canvasW - padLeft - padRight;
   var areaH = canvasH - padTop - padBot;
@@ -161,6 +164,11 @@ function updateLayout() {
 
   skipBtn.x = canvasW - skipBtn.w - 20;
   skipBtn.y = canvasH - skipBtn.h - 14;
+}
+
+function windowResized() {
+  resizeCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
+  updateLayout();
 }
 
 // ==============================
@@ -208,7 +216,7 @@ function restartAnimation() {
 // ==============================
 function draw() {
   if (!initialized) {
-    if (typeof createCanvas === "function") createCanvas(canvasW, canvasH);
+    if (typeof createCanvas === "function") createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
     if (typeof textFont === "function") textFont("Arial");
     if (typeof textAlign === "function") textAlign(CENTER, CENTER);
     updateLayout();

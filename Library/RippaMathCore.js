@@ -10,6 +10,11 @@
  *   RippaMathCore.Coordinate3D    — 3D coordinate system with camera orbit
  *   RippaMathCore.AngleExplorer   — Interactive angle teaching tool with naming, types & snap
  *
+ * Mobile & Touch:
+ *   All classes support touch drag, tap, and pinch-to-zoom on mobile devices.
+ *   Hit areas and UI elements auto-scale for finger-friendly interaction.
+ *   Layouts adapt responsively to small screens.
+ *
  * Usage:
  *   <script src="https://cdn.jsdelivr.net/npm/p5@1/lib/p5.min.js"></script>
  *   <script src="RippaMathCore.js"></script>
@@ -34,6 +39,28 @@
   // ============================================================
   // Shared Utilities
   // ============================================================
+
+  /** Detect touch device */
+  var _isTouch = (typeof window !== "undefined") &&
+    (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+
+  /** Detect mobile-sized viewport */
+  function isMobile() {
+    return (typeof width !== "undefined" && width < 500) || (typeof window !== "undefined" && window.innerWidth < 600);
+  }
+
+  /** Get touch-scaled hit radius (bigger on touch devices) */
+  function hitR(base) {
+    return _isTouch ? Math.max(base * 1.6, 30) : base;
+  }
+
+  /** Get responsive padding for axis edges */
+  function axisPad() {
+    if (typeof width === "undefined") return 80;
+    if (width < 400) return 30;
+    if (width < 600) return 50;
+    return 80;
+  }
 
   /** Easing: ease-in-out cubic */
   function easeInOut(t) {
@@ -67,6 +94,14 @@
   /** Clamp */
   function clampVal(v, lo, hi) { return Math.min(Math.max(v, lo), hi); }
 
+  /** Responsive text size */
+  function rTextSize(base) {
+    if (typeof width === "undefined") return base;
+    if (width < 400) return Math.max(base * 0.65, 8);
+    if (width < 600) return base * 0.8;
+    return base;
+  }
+
   /** Draw a simple arrow-head on the axis */
   function drawAxisArrow(x, y, dir) {
     push();
@@ -78,7 +113,7 @@
     pop();
   }
 
-  /** Draw a canvas button and return true if hovered */
+  /** Draw a canvas button and return true if hovered/touched */
   function drawButton(btn, label, fg, bg, bgHover, borderColor) {
     var hover = mouseX >= btn.x && mouseX <= btn.x + btn.w &&
                 mouseY >= btn.y && mouseY <= btn.y + btn.h;
@@ -88,7 +123,7 @@
     rect(btn.x, btn.y, btn.w, btn.h, 8);
     noStroke();
     fill(fg || 30);
-    textSize(btn.fontSize || 15);
+    textSize(btn.fontSize || rTextSize(15));
     textStyle(BOLD);
     textAlign(CENTER, CENTER);
     text(label, btn.x + btn.w / 2, btn.y + btn.h / 2);
@@ -96,10 +131,11 @@
     return hover;
   }
 
-  /** Check if mouse is inside a button rect */
+  /** Check if mouse/touch is inside a button rect (with extra padding on touch) */
   function insideBtn(btn) {
-    return mouseX >= btn.x && mouseX <= btn.x + btn.w &&
-           mouseY >= btn.y && mouseY <= btn.y + btn.h;
+    var pad = _isTouch ? 6 : 0;
+    return mouseX >= btn.x - pad && mouseX <= btn.x + btn.w + pad &&
+           mouseY >= btn.y - pad && mouseY <= btn.y + btn.h + pad;
   }
 
   /** Merge user options onto defaults */
@@ -109,6 +145,41 @@
     if (opts) { for (var k2 in opts) result[k2] = opts[k2]; }
     return result;
   }
+
+  // ============================================================
+  // Pinch-to-Zoom Helper (shared by classes that support zoom)
+  // ============================================================
+  function PinchHelper() {
+    this._pinching = false;
+    this._lastPinchDist = 0;
+    this._pinchCenterX = 0;
+    this._pinchCenterY = 0;
+  }
+  PinchHelper.prototype = {
+    update: function () {
+      if (typeof touches === "undefined" || !Array.isArray(touches) || touches.length < 2) {
+        this._pinching = false;
+        return null;
+      }
+      var t0 = touches[0], t1 = touches[1];
+      var d = dist(t0.x, t0.y, t1.x, t1.y);
+      var cx = (t0.x + t1.x) / 2;
+      var cy = (t0.y + t1.y) / 2;
+      if (!this._pinching) {
+        this._pinching = true;
+        this._lastPinchDist = d;
+        this._pinchCenterX = cx;
+        this._pinchCenterY = cy;
+        return null;
+      }
+      var delta = this._lastPinchDist - d;
+      this._lastPinchDist = d;
+      this._pinchCenterX = cx;
+      this._pinchCenterY = cy;
+      return { delta: delta * 3, centerX: cx, centerY: cy };
+    },
+    reset: function () { this._pinching = false; }
+  };
 
   // ============================================================
   // RippaMathCore.NumberLine  (sketches 1–6)
@@ -122,28 +193,33 @@
       zoom: false,
       showArrow: false,
       animations: false,
-      axisY: null,          // auto = height * 0.67
-      axisStartX: 100, axisEndX: null  // null = width - 100
+      axisY: null,
+      axisStartX: null, axisEndX: null
     };
     this.o = mergeOpts(defaults, opts);
     this._dotX = null;
     this._isDragging = false;
     this._snapToTick = this.o.snap;
-    // zoom state
     this._viewScale = 1;
     this._viewOffsetX = 0;
     this._viewOffsetY = 0;
-    // animation state
     this._particles = [];
     this._sparkleRadius = 0;
     this._isAnimating = false;
     this._lastIntVal = null;
+    this._pinch = new PinchHelper();
   };
 
   RippaMathCore.NumberLine.prototype = {
     _getAxisY: function () { return this.o.axisY || (height * 0.67); },
-    _getStartX: function () { return this.o.axisStartX; },
-    _getEndX: function () { return this.o.axisEndX || (width - 100); },
+    _getStartX: function () {
+      if (this.o.axisStartX !== null) return this.o.axisStartX;
+      return axisPad();
+    },
+    _getEndX: function () {
+      if (this.o.axisEndX !== null) return this.o.axisEndX;
+      return width - axisPad();
+    },
 
     _valueToX: function (v) {
       return map(v, this.o.min, this.o.max, this._getStartX(), this._getEndX());
@@ -160,13 +236,11 @@
       return (mouseY - this._viewOffsetY) / this._viewScale;
     },
 
-    /** Get current value */
     getValue: function () {
       if (this._dotX === null) return this.o.min;
       return this._xToValue(this._dotX);
     },
 
-    /** Set marker value programmatically */
     setValue: function (v) {
       this._dotX = this._valueToX(clampVal(v, this.o.min, this.o.max));
     },
@@ -176,9 +250,16 @@
       var sX = this._getStartX();
       var eX = this._getEndX();
 
-      // init dotX
       if (this.o.interactive && this._dotX === null) {
         this._dotX = map((this.o.min + this.o.max) / 2, this.o.min, this.o.max, sX, eX);
+      }
+
+      // Handle pinch-to-zoom on touch
+      if (this.o.zoom && _isTouch) {
+        var pinch = this._pinch.update();
+        if (pinch) {
+          this.mouseWheel({ delta: pinch.delta });
+        }
       }
 
       push();
@@ -187,11 +268,9 @@
         scale(this._viewScale);
       }
 
-      // axis line
       stroke(50); strokeWeight(2);
       line(sX, axY, eX, axY);
 
-      // sub-ticks
       if (this.o.subTickSpacing && this.o.subTickSpacing < this.o.tickSpacing) {
         var nSub = (this.o.max - this.o.min) / this.o.subTickSpacing;
         for (var i = 0; i <= nSub; i++) {
@@ -204,30 +283,27 @@
         }
       }
 
-      // main ticks + labels
       var nTicks = (this.o.max - this.o.min) / this.o.tickSpacing + 1;
       for (var j = 0; j < nTicks; j++) {
         var tv = this.o.min + j * this.o.tickSpacing;
         var tx = this._valueToX(tv);
         stroke(50); strokeWeight(2);
         line(tx, axY - 15, tx, axY + 15);
-        noStroke(); fill(50); textSize(14); textAlign(CENTER, CENTER);
+        noStroke(); fill(50); textSize(rTextSize(14)); textAlign(CENTER, CENTER);
         text(tv, tx, axY + 35);
       }
 
-      // interactive marker
       if (this.o.interactive) {
         this._updateDot();
         if (this.o.showArrow) {
           this._drawArrowMarker();
         } else {
           noStroke(); fill(50, 150, 255);
-          circle(this._dotX, axY, 20);
+          circle(this._dotX, axY, _isTouch ? 28 : 20);
         }
         this._displayValue();
       }
 
-      // animations
       if (this.o.animations) {
         this._updateAnimations();
         this._drawAnimations();
@@ -235,7 +311,6 @@
 
       pop();
 
-      // mode indicator (outside world transform)
       if (this.o.interactive && this.o.snap !== undefined) {
         this._drawModeIndicator();
       }
@@ -297,7 +372,6 @@
     _drawAnimations: function () {
       if (!this._isAnimating) return;
       var axY = this._getAxisY();
-      // sparkle ring
       if (this._sparkleRadius > 0) {
         push(); translate(this._dotX, axY - 40);
         var al = map(this._sparkleRadius, 0, 80, 255, 0);
@@ -311,7 +385,6 @@
         }
         pop();
       }
-      // confetti
       for (var j = 0; j < this._particles.length; j++) {
         var pp = this._particles[j];
         fill(pp.c); noStroke(); circle(pp.x, pp.y, pp.sz);
@@ -320,7 +393,8 @@
 
     _drawArrowMarker: function () {
       var axY = this._getAxisY();
-      var tipY = axY, headH = 18, headHW = 14, shaftH = 55, shaftW = 6;
+      var sc = isMobile() ? 0.85 : 1;
+      var tipY = axY, headH = 18 * sc, headHW = 14 * sc, shaftH = 55 * sc, shaftW = 6 * sc;
       var topY = tipY - headH - shaftH;
       var sbY = tipY - headH;
       noStroke(); fill(50, 150, 255); rectMode(CENTER);
@@ -338,10 +412,12 @@
       var dp = (av - ip).toFixed(2).substring(2);
 
       textAlign(CENTER, CENTER);
-      textSize(28); textStyle(BOLD);
+      var bigSize = rTextSize(28);
+      var smallSize = rTextSize(20);
+      textSize(bigSize); textStyle(BOLD);
       var iText = sgn + ip.toString();
       var iW = textWidth(iText);
-      textSize(20); textStyle(NORMAL);
+      textSize(smallSize); textStyle(NORMAL);
       var dText = "." + dp;
       var dW = textWidth(dText);
       var tW = iW + dW;
@@ -349,34 +425,52 @@
       var sX = this._dotX - tW / 2;
 
       fill(30, 50, 100); noStroke();
-      textSize(28); textStyle(BOLD);
+      textSize(bigSize); textStyle(BOLD);
       text(iText, sX + iW / 2, axY - 120);
-      fill(100, 120, 150); textSize(20); textStyle(NORMAL);
+      fill(100, 120, 150); textSize(smallSize); textStyle(NORMAL);
       text(dText, sX + iW + dW / 2, axY - 120);
     },
 
     _drawModeIndicator: function () {
-      fill(50); noStroke(); textSize(16); textStyle(NORMAL); textAlign(LEFT, TOP);
-      text("Mode: " + (this._snapToTick ? "SNAP TO TICK" : "SMOOTH"), 20, 30);
-      text("(Press SPACE to toggle)", 20, 50);
+      fill(50); noStroke(); textSize(rTextSize(14)); textStyle(NORMAL); textAlign(LEFT, TOP);
+      text("Mode: " + (this._snapToTick ? "SNAP" : "SMOOTH"), 12, 12);
+      if (!_isTouch) {
+        text("(Press SPACE to toggle)", 12, 30);
+      } else {
+        // On mobile, draw a toggle button for snap mode
+        var btn = { x: 12, y: 34, w: 100, h: 32 };
+        drawButton(btn, this._snapToTick ? "Snap: ON" : "Snap: OFF",
+          color(50), color(240), color(220), color(100));
+        this._snapToggleBtn = btn;
+      }
     },
 
     mousePressed: function () {
       if (!this.o.interactive) return;
+      // Check snap toggle button on touch
+      if (_isTouch && this._snapToggleBtn && insideBtn(this._snapToggleBtn)) {
+        this._snapToTick = !this._snapToTick;
+        return;
+      }
       var mx = this._worldMouseX(), my = this._worldMouseY();
       var axY = this._getAxisY();
+      var hr = hitR(20);
       if (this.o.showArrow) {
         var tipY = axY, headH = 18, headHW = 14, shaftH = 55;
         var topY = tipY - headH - shaftH;
-        var lx = this._dotX - Math.max(headHW, 6) - 6;
-        var rx = this._dotX + Math.max(headHW, 6) + 6;
-        if (mx >= lx && mx <= rx && my >= topY && my <= tipY) this._isDragging = true;
+        var extra = _isTouch ? 16 : 6;
+        var lx = this._dotX - Math.max(headHW, 6) - extra;
+        var rx = this._dotX + Math.max(headHW, 6) + extra;
+        if (mx >= lx && mx <= rx && my >= topY - extra && my <= tipY + extra) this._isDragging = true;
       } else {
-        if (dist(mx, my, this._dotX, axY) < 20) this._isDragging = true;
+        if (dist(mx, my, this._dotX, axY) < hr) this._isDragging = true;
       }
     },
 
-    mouseReleased: function () { this._isDragging = false; },
+    mouseReleased: function () {
+      this._isDragging = false;
+      this._pinch.reset();
+    },
 
     keyPressed: function () {
       if (key === ' ') this._snapToTick = !this._snapToTick;
@@ -410,7 +504,7 @@
     this._targetA = 14.2;
     this._aValue = 14;
     this._dragFrom = null; this._isDragging = false;
-    this._tryBtn = { x: 20, y: 20, w: 90, h: 36 };
+    this._tryBtn = { x: 20, y: 20, w: 90, h: 40 };
     this._axisY = 0; this._axisStartX = 0; this._axisEndX = 0;
     this._inited = false;
   };
@@ -418,8 +512,9 @@
   RippaMathCore.DecimalCounter.prototype = {
     _layout: function () {
       this._axisY = height * 0.55;
-      this._axisStartX = 120;
-      this._axisEndX = width - 120;
+      var pad = axisPad() + 30;
+      this._axisStartX = pad;
+      this._axisEndX = width - pad;
     },
     _valToX: function (v) { return map(v, this._leftVal, this._rightVal, this._axisStartX, this._axisEndX); },
     _xToVal: function (x) { return map(x, this._axisStartX, this._axisEndX, this._leftVal, this._rightVal); },
@@ -440,21 +535,18 @@
 
       var axY = this._axisY, sX = this._axisStartX, eX = this._axisEndX;
       var lX = this._valToX(this._leftVal), rX = this._valToX(this._rightVal);
+      var mob = isMobile();
 
-      // prompt
-      noStroke(); fill(40); textSize(18); textAlign(CENTER, CENTER);
-      text("Use the points on the ends of the number line to find the value of a", width / 2, 40);
+      noStroke(); fill(40); textSize(rTextSize(18)); textAlign(CENTER, CENTER);
+      text(mob ? "Find the value of a" : "Use the points on the ends of the number line to find the value of a", width / 2, 40);
 
-      // try button
       drawButton(this._tryBtn, "Try", color(30), color(255), color(245), color(40));
 
-      // axis
       stroke(40); strokeWeight(3);
       line(sX, axY, eX, axY);
       drawAxisArrow(sX, axY, -1);
       drawAxisArrow(eX, axY, 1);
 
-      // ticks
       var total = this._rightVal - this._leftVal;
       var n = Math.round(total / this.o.step);
       for (var i = 0; i <= n; i++) {
@@ -465,30 +557,25 @@
         var h = isInt ? 18 : 8;
         line(x, axY - h / 2, x, axY + h);
       }
-      // endpoint labels
-      noStroke(); fill(60); textSize(16); textAlign(CENTER, CENTER);
+      noStroke(); fill(60); textSize(rTextSize(16)); textAlign(CENTER, CENTER);
       text(this._leftVal, lX, axY + 48);
       text(this._rightVal, rX, axY + 48);
 
-      // endpoints
       this._drawEndpoint(lX, axY, this._leftVal.toString());
       this._drawEndpoint(rX, axY, this._rightVal.toString());
 
-      // arches
       if (this.o.showArches && this._dragFrom) {
         var startV = this._dragFrom === "left" ? this._leftVal : this._rightVal;
         this._drawArches(startV, this._aValue);
       }
 
-      // a marker
       var ax = this._valToX(this._aValue);
-      fill(60, 120, 240); noStroke(); ellipse(ax, axY, 14, 14);
-      fill(40, 90, 210); textSize(18); textStyle(ITALIC); textAlign(CENTER, CENTER);
+      fill(60, 120, 240); noStroke(); ellipse(ax, axY, _isTouch ? 20 : 14, _isTouch ? 20 : 14);
+      fill(40, 90, 210); textSize(rTextSize(18)); textStyle(ITALIC); textAlign(CENTER, CENTER);
       text("a", ax, axY + 26); textStyle(NORMAL);
-      fill(230, 40, 120); textSize(18); textStyle(BOLD);
+      fill(230, 40, 120); textSize(rTextSize(18)); textStyle(BOLD);
       text("a = " + formatDec(this._aValue), ax, axY - 56); textStyle(NORMAL);
 
-      // formula
       if (this.o.showFormula && this._dragFrom) {
         var sv = this._dragFrom === "left" ? this._leftVal : this._rightVal;
         var steps = this._dragFrom === "left"
@@ -496,22 +583,22 @@
           : Math.max(0, toTenthInt(sv) - toTenthInt(this._aValue));
         var op = this._dragFrom === "left" ? "+" : "-";
         var formula = sv + " " + op + " 0.1 \u00d7 " + steps + " = " + formatDec(this._aValue);
-        noStroke(); fill(30, 60, 140); textSize(18); textAlign(CENTER, CENTER);
+        noStroke(); fill(30, 60, 140); textSize(rTextSize(16)); textAlign(CENTER, CENTER);
         text(formula, width / 2, axY + 88);
       }
 
-      // feedback
       if (toTenthInt(this._aValue) === toTenthInt(this._targetA)) {
-        noStroke(); fill(40, 90, 210); textSize(22); textStyle(BOLD); textAlign(CENTER, CENTER);
+        noStroke(); fill(40, 90, 210); textSize(rTextSize(22)); textStyle(BOLD); textAlign(CENTER, CENTER);
         text("Correct!  a = " + formatDec(this._targetA), width / 2, axY + 120);
         textStyle(NORMAL);
       }
     },
 
     _drawEndpoint: function (x, y, label) {
-      noFill(); stroke(230, 40, 120); strokeWeight(4); ellipse(x, y, 34, 34);
+      var sz = _isTouch ? 42 : 34;
+      noFill(); stroke(230, 40, 120); strokeWeight(4); ellipse(x, y, sz, sz);
       fill(230, 40, 120); noStroke(); ellipse(x, y, 12, 12);
-      fill(230, 40, 120); textSize(18); textAlign(CENTER, CENTER); text(label, x, y - 34);
+      fill(230, 40, 120); textSize(rTextSize(18)); textAlign(CENTER, CENTER); text(label, x, y - 34);
     },
 
     _drawArches: function (startV, endV) {
@@ -530,7 +617,7 @@
         var mx = (x1 + x2) / 2;
         noFill(); stroke(230, 40, 120); strokeWeight(3);
         arc(mx, axY, stepPx, stepPx, PI, TWO_PI);
-        noStroke(); fill(230, 40, 120); textSize(14); textAlign(CENTER, CENTER);
+        noStroke(); fill(230, 40, 120); textSize(rTextSize(12)); textAlign(CENTER, CENTER);
         text(dir > 0 ? "0.1" : "-0.1", mx, axY - stepPx * 0.55);
       }
     },
@@ -539,10 +626,11 @@
       if (insideBtn(this._tryBtn)) { this.newRound(); return; }
       var lX = this._valToX(this._leftVal), rX = this._valToX(this._rightVal);
       var axY = this._axisY;
-      if (dist(mouseX, mouseY, lX, axY) < 22) {
+      var hr = hitR(22);
+      if (dist(mouseX, mouseY, lX, axY) < hr) {
         this._dragFrom = "left"; this._isDragging = true; this._aValue = this._leftVal; return;
       }
-      if (dist(mouseX, mouseY, rX, axY) < 22) {
+      if (dist(mouseX, mouseY, rX, axY) < hr) {
         this._dragFrom = "right"; this._isDragging = true; this._aValue = this._rightVal; return;
       }
     },
@@ -569,15 +657,17 @@
     this._personValue = 7;
     this._isDragging = false;
     this._axisY = 0; this._axisStartX = 0; this._axisEndX = 0;
-    this._newBtn = { x: 0, y: 0, w: 160, h: 40 };
+    this._newBtn = { x: 0, y: 0, w: 160, h: 44 };
     this._inited = false;
   };
 
   RippaMathCore.AbsoluteValue.prototype = {
     _layout: function () {
       this._axisY = height * 0.5;
-      this._axisStartX = 80; this._axisEndX = width - 80;
-      this._newBtn.x = width - this._newBtn.w - 24;
+      var pad = axisPad();
+      this._axisStartX = pad; this._axisEndX = width - pad;
+      this._newBtn.w = isMobile() ? 130 : 160;
+      this._newBtn.x = width - this._newBtn.w - 16;
       this._newBtn.y = height - 56;
     },
     _valToX: function (v) { return map(v, this.o.min, this.o.max, this._axisStartX, this._axisEndX); },
@@ -596,55 +686,53 @@
       else this._layout();
 
       var axY = this._axisY;
+      var mob = isMobile();
 
-      // instructions
-      noStroke(); fill(40); textSize(20); textStyle(BOLD); textAlign(CENTER, CENTER);
-      text("Absolute Value Visualization", width / 2, 32);
-      textStyle(NORMAL); textSize(15); fill(90);
-      text("Drag the marker. See how far it is from zero (absolute value).", width / 2, 58);
+      noStroke(); fill(40); textSize(rTextSize(20)); textStyle(BOLD); textAlign(CENTER, CENTER);
+      text("Absolute Value", width / 2, 24);
+      textStyle(NORMAL); textSize(rTextSize(14)); fill(90);
+      text(mob ? "Drag marker to see distance from zero" : "Drag the marker. See how far it is from zero (absolute value).", width / 2, 48);
 
-      // number line
       stroke(40); strokeWeight(3);
       line(this._axisStartX, axY, this._axisEndX, axY);
       drawAxisArrow(this._axisStartX, axY, -1);
       drawAxisArrow(this._axisEndX, axY, 1);
 
+      var labelInt = mob ? Math.max(this.o.labelInterval, 10) : this.o.labelInterval;
       for (var v = this.o.min; v <= this.o.max; v += this.o.tickSpacing) {
         var x = this._valToX(v);
-        var isLabel = v % this.o.labelInterval === 0;
-        stroke(30); strokeWeight(isLabel ? 3 : 2);
-        var h = isLabel ? 18 : 10;
+        var isLabel = v % labelInt === 0;
+        stroke(30); strokeWeight(isLabel ? 3 : 1);
+        var h = isLabel ? 18 : (mob ? 4 : 10);
         line(x, axY - h / 2, x, axY + h);
         if (isLabel) {
-          noStroke(); fill(60); textSize(14); textAlign(CENTER, CENTER);
-          text(v, x, axY + 36);
+          noStroke(); fill(60); textSize(rTextSize(14)); textAlign(CENTER, CENTER);
+          text(v, x, axY + 32);
         }
       }
 
-      // school at 0
       var schoolX = this._valToX(0);
-      noStroke(); fill(40); textSize(12); textStyle(BOLD); textAlign(CENTER, CENTER);
-      text("Zero / Origin", schoolX, axY - 70); textStyle(NORMAL);
-      fill(60); textSize(14); text("0", schoolX, axY - 50);
-      stroke(50); strokeWeight(2); line(schoolX, axY - 40, schoolX, axY - 6);
+      noStroke(); fill(40); textSize(rTextSize(11)); textStyle(BOLD); textAlign(CENTER, CENTER);
+      text("Zero", schoolX, axY - 65); textStyle(NORMAL);
+      fill(60); textSize(rTextSize(13)); text("0", schoolX, axY - 48);
+      stroke(50); strokeWeight(2); line(schoolX, axY - 38, schoolX, axY - 6);
       noStroke(); fill(50);
       triangle(schoolX - 5, axY - 6, schoolX + 5, axY - 6, schoolX, axY);
 
-      // person marker
       var px = this._valToX(this._personValue);
+      var markerSize = _isTouch ? 36 : 30;
       if (this._isDragging) {
         noFill(); stroke(140, 80, 180); strokeWeight(3);
-        ellipse(px, axY - 55, 44, 44);
+        ellipse(px, axY - 55, markerSize + 14, markerSize + 14);
       }
-      noStroke(); fill(50, 150, 255); ellipse(px, axY - 55, 30, 30);
-      noFill(); stroke(60, 60, 80); strokeWeight(2); ellipse(px, axY - 55, 30, 30);
+      noStroke(); fill(50, 150, 255); ellipse(px, axY - 55, markerSize, markerSize);
+      noFill(); stroke(60, 60, 80); strokeWeight(2); ellipse(px, axY - 55, markerSize, markerSize);
       stroke(50); strokeWeight(2); line(px, axY - 40, px, axY - 6);
       noStroke(); fill(50);
       triangle(px - 5, axY - 6, px + 5, axY - 6, px, axY);
-      fill(60, 40, 120); textSize(14); textAlign(CENTER, CENTER);
+      fill(60, 40, 120); textSize(rTextSize(14)); textAlign(CENTER, CENTER);
       text(this._personValue, px, axY - 85);
 
-      // distance feedback
       if (this._personValue !== 0) {
         var dU = Math.abs(this._personValue);
         var leftX = Math.min(px, schoolX), rightX = Math.max(px, schoolX);
@@ -654,21 +742,20 @@
         line(schoolX, axY - 70, schoolX, dLineY);
         strokeWeight(4);
         line(leftX, dLineY, rightX, dLineY);
-        noStroke(); fill(20, 80, 40); textSize(16); textStyle(BOLD); textAlign(CENTER, CENTER);
+        noStroke(); fill(20, 80, 40); textSize(rTextSize(16)); textStyle(BOLD); textAlign(CENTER, CENTER);
         text(dU, (leftX + rightX) / 2, dLineY - 14);
         textStyle(NORMAL);
 
-        noStroke(); fill(40); textSize(16); textAlign(CENTER, CENTER);
-        text("Distance from zero = " + dU, width / 2, axY + 78);
-        text("| " + this._personValue + " | = " + dU, width / 2, axY + 100);
+        noStroke(); fill(40); textSize(rTextSize(15)); textAlign(CENTER, CENTER);
+        text("Distance from zero = " + dU, width / 2, axY + 68);
+        text("| " + this._personValue + " | = " + dU, width / 2, axY + 90);
       } else {
-        noStroke(); fill(40, 120, 60); textSize(22); textStyle(BOLD); textAlign(CENTER, CENTER);
-        text("At zero!", width / 2, axY + 95);
+        noStroke(); fill(40, 120, 60); textSize(rTextSize(22)); textStyle(BOLD); textAlign(CENTER, CENTER);
+        text("At zero!", width / 2, axY + 85);
         textStyle(NORMAL);
       }
 
-      // button
-      drawButton(this._newBtn, "NEW DISTANCE", color(80, 40, 120),
+      drawButton(this._newBtn, mob ? "NEW" : "NEW DISTANCE", color(80, 40, 120),
         color(230, 220, 245), color(200, 200, 230), color(80, 40, 120));
     },
 
@@ -676,7 +763,7 @@
       if (insideBtn(this._newBtn)) { this.newRound(); return; }
       var px = this._valToX(this._personValue);
       var cY = this._axisY - 55;
-      if (dist(mouseX, mouseY, px, cY) <= 40) this._isDragging = true;
+      if (dist(mouseX, mouseY, px, cY) <= hitR(40)) this._isDragging = true;
     },
     mouseDragged: function () {
       if (!this._isDragging) return;
@@ -694,22 +781,24 @@
     var defaults = {
       min: -20, max: 20,
       labelInterval: 5, tickSpacing: 1,
-      animated: false // if true, shows animated bar calculation (sketch 10)
+      animated: false
     };
     this.o = mergeOpts(defaults, opts);
     this._personAVal = -5;
     this._personBVal = 7;
     this._dragTarget = null; this._isDragging = false;
     this._axisY = 0; this._axisStartX = 0; this._axisEndX = 0;
-    this._newBtn = { x: 0, y: 0, w: 160, h: 40 };
+    this._newBtn = { x: 0, y: 0, w: 160, h: 44 };
     this._inited = false;
   };
 
   RippaMathCore.DistanceBetween.prototype = {
     _layout: function () {
       this._axisY = height * 0.4;
-      this._axisStartX = 80; this._axisEndX = width - 80;
-      this._newBtn.x = width - this._newBtn.w - 24;
+      var pad = axisPad();
+      this._axisStartX = pad; this._axisEndX = width - pad;
+      this._newBtn.w = isMobile() ? 130 : 160;
+      this._newBtn.x = width - this._newBtn.w - 16;
       this._newBtn.y = height - 56;
     },
     _valToX: function (v) { return map(v, this.o.min, this.o.max, this._axisStartX, this._axisEndX); },
@@ -730,57 +819,55 @@
       else this._layout();
 
       var axY = this._axisY;
+      var mob = isMobile();
 
-      // instructions
-      noStroke(); fill(40); textSize(20); textStyle(BOLD); textAlign(CENTER, CENTER);
-      text("Distance Between Two Points", width / 2, 32);
-      textStyle(NORMAL); textSize(15); fill(90);
-      text("Drag either marker. Distance = | A \u2212 B |", width / 2, 58);
+      noStroke(); fill(40); textSize(rTextSize(20)); textStyle(BOLD); textAlign(CENTER, CENTER);
+      text("Distance Between Two Points", width / 2, 24);
+      textStyle(NORMAL); textSize(rTextSize(14)); fill(90);
+      text(mob ? "Drag A or B" : "Drag either marker. Distance = | A \u2212 B |", width / 2, 48);
 
-      // number line
       stroke(40); strokeWeight(3);
       line(this._axisStartX, axY, this._axisEndX, axY);
       drawAxisArrow(this._axisStartX, axY, -1);
       drawAxisArrow(this._axisEndX, axY, 1);
+
+      var labelInt = mob ? Math.max(this.o.labelInterval, 10) : this.o.labelInterval;
       for (var v = this.o.min; v <= this.o.max; v += this.o.tickSpacing) {
         var x = this._valToX(v);
-        var isLabel = v % this.o.labelInterval === 0;
-        stroke(30); strokeWeight(isLabel ? 3 : 2);
-        var h = isLabel ? 18 : 10;
+        var isLabel = v % labelInt === 0;
+        stroke(30); strokeWeight(isLabel ? 3 : 1);
+        var h = isLabel ? 18 : (mob ? 4 : 10);
         line(x, axY - h / 2, x, axY + h);
         if (isLabel) {
-          noStroke(); fill(60); textSize(14); textAlign(CENTER, CENTER); text(v, x, axY + 36);
+          noStroke(); fill(60); textSize(rTextSize(13)); textAlign(CENTER, CENTER); text(v, x, axY + 32);
         }
       }
 
-      // markers
       var ax = this._valToX(this._personAVal);
       var bx = this._valToX(this._personBVal);
       var mY = axY - 55;
+      var markerSz = _isTouch ? 34 : 28;
 
-      // A marker
       if (this._dragTarget === "A") {
-        noFill(); stroke(140, 80, 180); strokeWeight(3); ellipse(ax, mY, 44, 44);
+        noFill(); stroke(140, 80, 180); strokeWeight(3); ellipse(ax, mY, markerSz + 16, markerSz + 16);
       }
-      noStroke(); fill(230, 130, 50); ellipse(ax, mY, 28, 28);
-      noFill(); stroke(60); strokeWeight(2); ellipse(ax, mY, 28, 28);
+      noStroke(); fill(230, 130, 50); ellipse(ax, mY, markerSz, markerSz);
+      noFill(); stroke(60); strokeWeight(2); ellipse(ax, mY, markerSz, markerSz);
       stroke(50); strokeWeight(2); line(ax, mY + 14, ax, axY - 6);
       noStroke(); fill(50); triangle(ax - 5, axY - 6, ax + 5, axY - 6, ax, axY);
-      fill(180, 100, 30); textSize(14); textAlign(CENTER, CENTER);
-      text("A = " + this._personAVal, ax, mY - 28);
+      fill(180, 100, 30); textSize(rTextSize(14)); textAlign(CENTER, CENTER);
+      text("A=" + this._personAVal, ax, mY - 24);
 
-      // B marker
       if (this._dragTarget === "B") {
-        noFill(); stroke(80, 100, 160); strokeWeight(3); ellipse(bx, mY, 44, 44);
+        noFill(); stroke(80, 100, 160); strokeWeight(3); ellipse(bx, mY, markerSz + 16, markerSz + 16);
       }
-      noStroke(); fill(50, 100, 200); ellipse(bx, mY, 28, 28);
-      noFill(); stroke(60); strokeWeight(2); ellipse(bx, mY, 28, 28);
+      noStroke(); fill(50, 100, 200); ellipse(bx, mY, markerSz, markerSz);
+      noFill(); stroke(60); strokeWeight(2); ellipse(bx, mY, markerSz, markerSz);
       stroke(50); strokeWeight(2); line(bx, mY + 14, bx, axY - 6);
       noStroke(); fill(50); triangle(bx - 5, axY - 6, bx + 5, axY - 6, bx, axY);
-      fill(30, 70, 150); textSize(14); textAlign(CENTER, CENTER);
-      text("B = " + this._personBVal, bx, mY - 28);
+      fill(30, 70, 150); textSize(rTextSize(14)); textAlign(CENTER, CENTER);
+      text("B=" + this._personBVal, bx, mY - 24);
 
-      // distance bracket
       var dU = this.getDistance();
       if (dU > 0) {
         var leftX = Math.min(ax, bx), rightX = Math.max(ax, bx);
@@ -788,25 +875,23 @@
         stroke(34, 100, 50); strokeWeight(2);
         line(ax, mY - 14, ax, dLY); line(bx, mY - 14, bx, dLY);
         strokeWeight(4); line(leftX, dLY, rightX, dLY);
-        noStroke(); fill(20, 80, 40); textSize(16); textStyle(BOLD); textAlign(CENTER, CENTER);
+        noStroke(); fill(20, 80, 40); textSize(rTextSize(16)); textStyle(BOLD); textAlign(CENTER, CENTER);
         text(dU, (leftX + rightX) / 2, dLY - 14); textStyle(NORMAL);
       }
 
-      // feedback text
-      noStroke(); fill(40); textSize(16); textAlign(CENTER, CENTER);
-      var fY = axY + 70;
+      noStroke(); fill(40); textSize(rTextSize(15)); textAlign(CENTER, CENTER);
+      var fY = axY + 60;
       if (dU === 0) {
-        fill(40, 120, 60); textSize(18); textStyle(BOLD);
+        fill(40, 120, 60); textSize(rTextSize(18)); textStyle(BOLD);
         text("Same position! Distance is 0.", width / 2, fY); textStyle(NORMAL);
       } else {
         text("Distance = | " + this._personAVal + " \u2212 " + this._personBVal + " | = " + dU, width / 2, fY);
         textStyle(BOLD);
-        text("| " + this._personAVal + " \u2212 (" + this._personBVal + ") | = " + dU, width / 2, fY + 24);
+        text("| " + this._personAVal + " \u2212 (" + this._personBVal + ") | = " + dU, width / 2, fY + 22);
         textStyle(NORMAL);
       }
 
-      // button
-      drawButton(this._newBtn, "NEW POSITIONS", color(80, 40, 120),
+      drawButton(this._newBtn, mob ? "NEW" : "NEW POSITIONS", color(80, 40, 120),
         color(230, 220, 245), color(200, 200, 230), color(80, 40, 120));
     },
 
@@ -815,8 +900,9 @@
       var mY = this._axisY - 55;
       var ax = this._valToX(this._personAVal);
       var bx = this._valToX(this._personBVal);
-      if (dist(mouseX, mouseY, ax, mY) <= 30) { this._dragTarget = "A"; this._isDragging = true; return; }
-      if (dist(mouseX, mouseY, bx, mY) <= 30) { this._dragTarget = "B"; this._isDragging = true; }
+      var hr = hitR(30);
+      if (dist(mouseX, mouseY, ax, mY) <= hr) { this._dragTarget = "A"; this._isDragging = true; return; }
+      if (dist(mouseX, mouseY, bx, mY) <= hr) { this._dragTarget = "B"; this._isDragging = true; }
     },
     mouseDragged: function () {
       if (!this._isDragging || !this._dragTarget) return;
@@ -873,24 +959,23 @@
       var range = gMax - gMin;
       var ppu = Math.min(width, height) * 0.75 / range;
       var cx = width / 2, cy = height / 2;
+      var mob = isMobile();
+      var showEvery = mob ? 2 : 1;
 
-      // title
-      noStroke(); fill(40); textSize(18); textStyle(BOLD); textAlign(CENTER, TOP);
-      text("2D Coordinate Grid", width / 2, 10); textStyle(NORMAL);
+      noStroke(); fill(40); textSize(rTextSize(18)); textStyle(BOLD); textAlign(CENTER, TOP);
+      text("2D Coordinate Grid", width / 2, 6); textStyle(NORMAL);
 
-      // grid lines
       for (var i = gMin; i <= gMax; i++) {
         var s = this._gridToScreen(i, 0);
         var sy1 = this._gridToScreen(0, gMin);
         var sy2 = this._gridToScreen(0, gMax);
         stroke(220); strokeWeight(1);
-        line(s.x, sy1.y, s.x, sy2.y); // vertical
+        line(s.x, sy1.y, s.x, sy2.y);
         var sh = this._gridToScreen(gMin, i);
         var sh2 = this._gridToScreen(gMax, i);
-        line(sh.x, sh.y, sh2.x, sh2.y); // horizontal
+        line(sh.x, sh.y, sh2.x, sh2.y);
       }
 
-      // axes
       var ox = this._gridToScreen(0, 0);
       var xEnd = this._gridToScreen(gMax, 0);
       var xStart = this._gridToScreen(gMin, 0);
@@ -898,52 +983,50 @@
       var yStart = this._gridToScreen(0, gMin);
 
       stroke(0); strokeWeight(2);
-      line(xStart.x, ox.y, xEnd.x, ox.y); // x-axis
-      line(ox.x, yStart.y, ox.x, yEnd.y); // y-axis
+      line(xStart.x, ox.y, xEnd.x, ox.y);
+      line(ox.x, yStart.y, ox.x, yEnd.y);
 
-      // axis labels
-      noStroke(); fill(0); textSize(12); textAlign(CENTER, CENTER);
+      noStroke(); fill(0); textSize(rTextSize(11)); textAlign(CENTER, CENTER);
       for (var j = gMin; j <= gMax; j++) {
         if (j === 0) continue;
+        if (mob && j % showEvery !== 0) continue;
         var tx = this._gridToScreen(j, 0);
-        text(j, tx.x, ox.y + 16);
+        text(j, tx.x, ox.y + 14);
         var ty = this._gridToScreen(0, j);
-        text(j, ox.x - 18, ty.y);
+        text(j, ox.x - 16, ty.y);
       }
-      textSize(14); textStyle(BOLD);
-      text("x", xEnd.x + 16, ox.y);
-      text("y", ox.x, yEnd.y - 16);
+      textSize(rTextSize(13)); textStyle(BOLD);
+      text("x", xEnd.x + 14, ox.y);
+      text("y", ox.x, yEnd.y - 14);
       textStyle(NORMAL);
-      text("0", ox.x - 14, ox.y + 14);
+      text("0", ox.x - 12, ox.y + 12);
 
-      // game mode target
       if (this.o.gameMode) {
         var tPos = this._gridToScreen(this._targetX, this._targetY);
         noStroke(); fill(255, 100, 100, 180);
-        circle(tPos.x, tPos.y, 20);
-        fill(180, 0, 0); textSize(12);
-        text("Target (" + this._targetX + ", " + this._targetY + ")", tPos.x, tPos.y - 18);
+        circle(tPos.x, tPos.y, _isTouch ? 28 : 20);
+        fill(180, 0, 0); textSize(rTextSize(12));
+        text("(" + this._targetX + "," + this._targetY + ")", tPos.x, tPos.y - 18);
       }
 
-      // draggable point
       var pp = this._gridToScreen(this._pointX, this._pointY);
+      var dotSz = _isTouch ? 24 : 16;
       if (this._isDragging) {
         noFill(); stroke(50, 150, 255, 150); strokeWeight(3);
-        ellipse(pp.x, pp.y, 36, 36);
+        ellipse(pp.x, pp.y, dotSz + 20, dotSz + 20);
       }
       noStroke(); fill(50, 150, 255);
-      circle(pp.x, pp.y, 16);
-      fill(30, 50, 100); textSize(14); textStyle(BOLD);
-      text("(" + this._pointX + ", " + this._pointY + ")", pp.x, pp.y - 20);
+      circle(pp.x, pp.y, dotSz);
+      fill(30, 50, 100); textSize(rTextSize(14)); textStyle(BOLD);
+      text("(" + this._pointX + ", " + this._pointY + ")", pp.x, pp.y - 18);
       textStyle(NORMAL);
 
-      // game score
       if (this.o.gameMode) {
-        fill(40); textSize(16); textAlign(LEFT, TOP);
-        text("Score: " + this._score, 12, 40);
+        fill(40); textSize(rTextSize(16)); textAlign(LEFT, TOP);
+        text("Score: " + this._score, 10, 32);
         if (this._pointX === this._targetX && this._pointY === this._targetY) {
-          fill(40, 160, 60); textSize(20); textStyle(BOLD); textAlign(CENTER, CENTER);
-          text("Correct! Click to continue.", width / 2, height - 30);
+          fill(40, 160, 60); textSize(rTextSize(18)); textStyle(BOLD); textAlign(CENTER, CENTER);
+          text(mob ? "Correct! Tap to continue" : "Correct! Click to continue.", width / 2, height - 24);
           textStyle(NORMAL);
         }
       }
@@ -951,10 +1034,9 @@
 
     mousePressed: function () {
       var pp = this._gridToScreen(this._pointX, this._pointY);
-      if (dist(mouseX, mouseY, pp.x, pp.y) < 24) {
+      if (dist(mouseX, mouseY, pp.x, pp.y) < hitR(24)) {
         this._isDragging = true; return;
       }
-      // game mode: click to advance if correct
       if (this.o.gameMode && this._pointX === this._targetX && this._pointY === this._targetY) {
         this._score++;
         this.newTarget();
@@ -985,62 +1067,57 @@
     this._lastMX = 0; this._lastMY = 0;
     this._isDragging = false;
     this._inited = false;
+    this._pinch = new PinchHelper();
   };
 
   RippaMathCore.Coordinate3D.prototype = {
     draw: function () {
-      // This class requires WEBGL renderer
       if (!this._inited) { this._inited = true; }
 
-      var gMin = this.o.gridMin, gMax = this.o.gridMax;
-      var sc = 40; // scale: 1 unit = 40 px
+      // Handle pinch-to-zoom on touch
+      if (_isTouch) {
+        var pinch = this._pinch.update();
+        if (pinch) {
+          this._camDist = constrain(this._camDist + pinch.delta * 0.5, 100, 2000);
+        }
+      }
 
-      // Camera
+      var gMin = this.o.gridMin, gMax = this.o.gridMax;
+      var sc = 40;
+
       var cX = this._camDist * cos(this._camEl) * sin(this._camAz);
       var cY = -this._camDist * sin(this._camEl);
       var cZ = this._camDist * cos(this._camEl) * cos(this._camAz);
       camera(cX, cY, cZ, 0, 0, 0, 0, 1, 0);
       orbitControl(2, 2, 0.5);
 
-      // Title text (in 2D overlay is not easy in WEBGL, skip)
-
-      // Grid floor (xz plane)
       push();
       stroke(200); strokeWeight(0.5);
       for (var i = gMin; i <= gMax; i++) {
-        line(i * sc, 0, gMin * sc, i * sc, 0, gMax * sc); // along z
-        line(gMin * sc, 0, i * sc, gMax * sc, 0, i * sc); // along x
+        line(i * sc, 0, gMin * sc, i * sc, 0, gMax * sc);
+        line(gMin * sc, 0, i * sc, gMax * sc, 0, i * sc);
       }
       pop();
 
-      // Axes
       push(); strokeWeight(2);
-      // X axis (red)
       stroke(220, 50, 50);
       line(gMin * sc, 0, 0, gMax * sc, 0, 0);
-      // Y axis (green) — up
       stroke(50, 180, 50);
       line(0, -gMax * sc, 0, 0, -gMin * sc, 0);
-      // Z axis (blue)
       stroke(50, 50, 220);
       line(0, 0, gMin * sc, 0, 0, gMax * sc);
       pop();
 
-      // Point
       push();
       translate(this._ptX * sc, -this._ptY * sc, this._ptZ * sc);
       noStroke(); fill(255, 100, 50);
       sphere(8);
       pop();
 
-      // Dashed lines from point to axes
       push(); stroke(100); strokeWeight(1);
-      // vertical line from point down to xz
       line(this._ptX * sc, -this._ptY * sc, this._ptZ * sc,
            this._ptX * sc, 0, this._ptZ * sc);
-      // line from xz projection to x-axis
       line(this._ptX * sc, 0, this._ptZ * sc, this._ptX * sc, 0, 0);
-      // line from xz projection to z-axis
       line(this._ptX * sc, 0, this._ptZ * sc, 0, 0, this._ptZ * sc);
       pop();
     },
@@ -1059,14 +1136,16 @@
       this._lastMX = mouseX; this._lastMY = mouseY;
     },
 
-    mouseReleased: function () { this._isDragging = false; },
+    mouseReleased: function () {
+      this._isDragging = false;
+      this._pinch.reset();
+    },
 
     mouseWheel: function (event) {
       this._camDist = constrain(this._camDist + event.delta * 0.5, 100, 2000);
       return false;
     },
 
-    /** Set point position */
     setPoint: function (x, y, z) {
       this._ptX = x; this._ptY = y; this._ptZ = z;
     }
@@ -1075,8 +1154,6 @@
   // ============================================================
   // RippaMathCore.AngleExplorer  (sketch 15)
   // ============================================================
-  // Layout: LEFT panel (naming) | CENTER (angle viz) | RIGHT panel (data)
-  //         BOTTOM bar (quick-jump buttons + snap toggle)
   RippaMathCore.AngleExplorer = function (opts) {
     var defaults = {
       snapMode: false,
@@ -1095,7 +1172,6 @@
     this._activeNameStyle = 0;
     this._particles = [];
     this._lastSpecialHit = -1;
-    // Layout
     this._cx = 0; this._cy = 0;
     this._rayLen = 120; this._arcR = 40; this._handleR = 12;
     this._leftW = 0; this._rightW = 0;
@@ -1108,6 +1184,7 @@
     this._QUICK = [30,45,60,90,120,180,270,360];
     this._cols = null;
     this._typeCols = null;
+    this._mobileMode = false;
   };
 
   RippaMathCore.AngleExplorer.prototype = {
@@ -1129,36 +1206,72 @@
 
     _layout: function () {
       var w = width, h = height;
-      this._leftW = constrain(w * 0.20, 150, 220);
-      this._rightW = constrain(w * 0.20, 150, 220);
-      var vizL = this._leftW, vizR = w - this._rightW;
-      this._cx = (vizL + vizR) / 2;
-      this._cy = this._topH + (h - this._topH - this._botH) / 2;
-      var vizW = vizR - vizL, vizH = h - this._topH - this._botH;
-      this._rayLen = constrain(Math.min(vizW, vizH) * 0.28, 60, 200);
-      this._arcR = this._rayLen * 0.32;
-      this._handleR = Math.max(8, this._rayLen * 0.08);
+      this._mobileMode = w < 580;
 
-      // Bottom bar buttons
-      var barY = h - this._botH + 12;
-      var bw = 50, bh = 28, bg = 5;
-      var tw = this._QUICK.length * (bw + bg) - bg;
-      var gw = tw + 16 + this._snapBtn.w;
-      var sx = (w - gw) / 2;
-      this._quickBtns = [];
-      for (var i = 0; i < this._QUICK.length; i++) {
-        this._quickBtns.push({ x: sx + i * (bw + bg), y: barY, w: bw, h: bh, angle: this._QUICK[i] });
-      }
-      this._snapBtn.x = sx + tw + 16;
-      this._snapBtn.y = barY;
-      this._snapBtn.h = bh;
+      if (this._mobileMode) {
+        // Mobile: no side panels, full-width viz, compact bottom bar
+        this._leftW = 0;
+        this._rightW = 0;
+        this._topH = 70; // extra room for angle info overlay
+        this._botH = 70;
+        this._cx = w / 2;
+        this._cy = this._topH + (h - this._topH - this._botH) / 2;
+        var vizSz = Math.min(w, h - this._topH - this._botH);
+        this._rayLen = constrain(vizSz * 0.30, 50, 160);
+        this._arcR = this._rayLen * 0.32;
+        this._handleR = Math.max(14, this._rayLen * 0.1);
 
-      // Left panel naming buttons
-      var nW = this._leftW - 30, nH = 36, nG = 7;
-      var nY = this._topH + 80;
-      this._nameBtns = [];
-      for (var j = 0; j < 3; j++) {
-        this._nameBtns.push({ x: 15, y: nY + j * (nH + nG), w: nW, h: nH });
+        // Compact quick buttons
+        var barY = h - this._botH + 8;
+        var bw = Math.min(42, (w - 20) / (this._QUICK.length + 1.5) - 3);
+        var bh = 30;
+        var bg = 3;
+        var snapW = Math.min(80, bw * 2);
+        this._snapBtn.w = snapW;
+        var tw = this._QUICK.length * (bw + bg) - bg;
+        var gw = tw + 8 + snapW;
+        var sx = Math.max(4, (w - gw) / 2);
+        this._quickBtns = [];
+        for (var i = 0; i < this._QUICK.length; i++) {
+          this._quickBtns.push({ x: sx + i * (bw + bg), y: barY, w: bw, h: bh, angle: this._QUICK[i] });
+        }
+        this._snapBtn.x = sx + tw + 8;
+        this._snapBtn.y = barY;
+        this._snapBtn.h = bh;
+        this._nameBtns = [];
+      } else {
+        // Desktop: side panels
+        this._leftW = constrain(w * 0.20, 150, 220);
+        this._rightW = constrain(w * 0.20, 150, 220);
+        this._topH = 50;
+        this._botH = 80;
+        var vizL = this._leftW, vizR = w - this._rightW;
+        this._cx = (vizL + vizR) / 2;
+        this._cy = this._topH + (h - this._topH - this._botH) / 2;
+        var vizW = vizR - vizL, vizH = h - this._topH - this._botH;
+        this._rayLen = constrain(Math.min(vizW, vizH) * 0.28, 60, 200);
+        this._arcR = this._rayLen * 0.32;
+        this._handleR = Math.max(8, this._rayLen * 0.08);
+
+        var barY2 = h - this._botH + 12;
+        var bw2 = 50, bh2 = 28, bg2 = 5;
+        var tw2 = this._QUICK.length * (bw2 + bg2) - bg2;
+        var gw2 = tw2 + 16 + this._snapBtn.w;
+        var sx2 = (w - gw2) / 2;
+        this._quickBtns = [];
+        for (var ii = 0; ii < this._QUICK.length; ii++) {
+          this._quickBtns.push({ x: sx2 + ii * (bw2 + bg2), y: barY2, w: bw2, h: bh2, angle: this._QUICK[ii] });
+        }
+        this._snapBtn.x = sx2 + tw2 + 16;
+        this._snapBtn.y = barY2;
+        this._snapBtn.h = bh2;
+
+        var nW = this._leftW - 30, nH = 36, nG = 7;
+        var nY = this._topH + 80;
+        this._nameBtns = [];
+        for (var j = 0; j < 3; j++) {
+          this._nameBtns.push({ x: 15, y: nY + j * (nH + nG), w: nW, h: nH });
+        }
       }
     },
 
@@ -1179,16 +1292,58 @@
       } else this._angle = this._targetAngle;
       this._angle = constrain(this._angle, 0, 360);
 
-      this._drawTitleBar();
-      if (this.o.showNaming) this._drawLeftPanel();
-      this._drawRightPanel();
+      if (this._mobileMode) {
+        this._drawMobileTitleBar();
+      } else {
+        this._drawTitleBar();
+        if (this.o.showNaming) this._drawLeftPanel();
+        this._drawRightPanel();
+      }
       this._drawBottomBar();
-      if (this.o.showSpecialMarkers) this._drawMarkers();
+      if (this.o.showSpecialMarkers && !this._mobileMode) this._drawMarkers();
       this._drawRays();
       this._drawArc();
       this._drawPtLabels();
       this._updateParts();
       this._drawParts();
+    },
+
+    _drawMobileTitleBar: function () {
+      var c = this._cols;
+      fill(255,255,255,220); noStroke();
+      rect(0, 0, width, this._topH);
+      stroke(215,220,235); strokeWeight(1);
+      line(0, this._topH, width, this._topH);
+
+      var deg = Math.round(this._angle * 10) / 10;
+      var info = this._getType(deg);
+      var tc = this._typeCols[info.key];
+      var spec = this._isSpec(deg);
+
+      // Angle degree + type on mobile top bar
+      noStroke(); fill(spec ? c.special : c.accent);
+      textSize(22); textStyle(BOLD); textAlign(CENTER, CENTER);
+      text(deg + "\u00B0", width / 2, 20);
+      textStyle(NORMAL);
+      fill(tc); textSize(12); textStyle(BOLD);
+      text(info.name, width / 2, 42);
+      textStyle(NORMAL);
+
+      // Naming style indicator (compact)
+      var pA = this.o.pointLabels[0], pB = this.o.pointLabels[1], pC = this.o.pointLabels[2];
+      var names = ["\u2220" + pA + pB + pC, "\u2220" + pC + pB + pA, "\u2220" + pB];
+      fill(c.muted); textSize(11); textAlign(LEFT, CENTER);
+      text(names[this._activeNameStyle], 10, 20);
+      // Tap-to-cycle hint
+      fill(200); textSize(8);
+      text("tap to cycle", 10, 35);
+      this._mobileNameBtn = { x: 2, y: 4, w: 80, h: 36 };
+
+      if (spec) {
+        fill(c.special); textSize(9); textStyle(BOLD); textAlign(RIGHT, CENTER);
+        text("\u2605 Special", width - 10, 20);
+        textStyle(NORMAL);
+      }
     },
 
     _drawTitleBar: function () {
@@ -1234,7 +1389,6 @@
         text(names[i].sub, btn.x + btn.w / 2, btn.y + btn.h - 6);
       }
 
-      // Active name card
       var dy = this._nameBtns[2].y + this._nameBtns[2].h + 16;
       var cw = lw - 24, ch = 70;
       fill(c.cardBg); stroke(c.accent); strokeWeight(2);
@@ -1250,7 +1404,6 @@
       var el = exps[this._activeNameStyle].split("\n");
       for (var k = 0; k < el.length; k++) text(el[k], cx, dy + 48 + k * 12);
 
-      // How to read
       var gy = dy + ch + 14;
       fill(c.text); textSize(10); textStyle(BOLD); textAlign(LEFT, TOP);
       text("How to read:", 18, gy); textStyle(NORMAL);
@@ -1275,7 +1428,6 @@
       var deg = Math.round(this._angle * 10) / 10;
       var spec = this._isSpec(deg);
 
-      // Measurement section
       var my = this._topH + 14;
       noStroke(); fill(c.accent); textSize(13); textStyle(BOLD); textAlign(CENTER, TOP);
       text("Measurement", cx, my); textStyle(NORMAL);
@@ -1287,7 +1439,6 @@
       text(deg + "\u00B0", cx, cy + ch / 2 - 6); textStyle(NORMAL);
       if (spec) { fill(c.special); textSize(10); textStyle(BOLD); text("\u2605 Special Angle", cx, cy + ch - 10); textStyle(NORMAL); }
 
-      // Type section
       var info = this._getType(deg);
       var tc = this._typeCols[info.key];
       var ty = cy + ch + 14;
@@ -1307,7 +1458,6 @@
       if (ln) lines.push(ln);
       for (var j = 0; j < lines.length; j++) text(lines[j], cx, tcy + 38 + j * 12);
 
-      // Range bar
       var ry = tcy + tch + 14;
       this._drawRange(px + pad, ry, cw, deg);
     },
@@ -1351,8 +1501,10 @@
       var bt = height - this._botH, c = this._cols;
       fill(255,255,255,220); noStroke(); rect(0, bt, width, this._botH);
       stroke(215,220,235); strokeWeight(1); line(0, bt, width, bt);
-      noStroke(); fill(c.muted); textSize(10); textStyle(BOLD); textAlign(CENTER, CENTER);
-      text("Quick Jump to Special Angles", width / 2, bt + 9); textStyle(NORMAL);
+      if (!this._mobileMode) {
+        noStroke(); fill(c.muted); textSize(10); textStyle(BOLD); textAlign(CENTER, CENTER);
+        text("Quick Jump to Special Angles", width / 2, bt + 9); textStyle(NORMAL);
+      }
       var deg = Math.round(this._angle * 10) / 10;
       for (var i = 0; i < this._quickBtns.length; i++) {
         var btn = this._quickBtns[i], act = Math.abs(deg - btn.angle) < 1;
@@ -1362,23 +1514,23 @@
         else { fill(c.cardBg); stroke(c.cardBorder); strokeWeight(1); }
         rect(btn.x, btn.y, btn.w, btn.h, 7);
         noStroke(); fill(act ? 255 : c.text);
-        textSize(12); textStyle(BOLD); textAlign(CENTER, CENTER);
+        textSize(this._mobileMode ? 10 : 12); textStyle(BOLD); textAlign(CENTER, CENTER);
         text(btn.angle + "\u00B0", btn.x + btn.w / 2, btn.y + btn.h / 2); textStyle(NORMAL);
       }
-      // Snap
       var sh = insideBtn(this._snapBtn);
       if (this._snapMode) { fill(red(c.snapOn),green(c.snapOn),blue(c.snapOn),30); stroke(c.snapOn); strokeWeight(2); }
       else if (sh) { fill(240,245,255); stroke(c.accent); strokeWeight(1.5); }
       else { fill(c.cardBg); stroke(c.cardBorder); strokeWeight(1); }
       rect(this._snapBtn.x, this._snapBtn.y, this._snapBtn.w, this._snapBtn.h, 7);
       noStroke(); fill(this._snapMode ? c.snapOn : c.text);
-      textSize(10); textStyle(BOLD); textAlign(CENTER, CENTER);
-      text(this._snapMode ? "\u2713 Snap ON" : "Snap to Special",
+      textSize(this._mobileMode ? 9 : 10); textStyle(BOLD); textAlign(CENTER, CENTER);
+      text(this._snapMode ? "\u2713 Snap" : "Snap",
         this._snapBtn.x + this._snapBtn.w / 2, this._snapBtn.y + this._snapBtn.h / 2);
       textStyle(NORMAL);
-      // Hint
-      fill(185); textSize(8); textAlign(CENTER, CENTER);
-      text("Drag handle \u2022 Click buttons \u2022 Toggle snap", width / 2, height - 8);
+      if (!this._mobileMode) {
+        fill(185); textSize(8); textAlign(CENTER, CENTER);
+        text("Drag handle \u2022 Click buttons \u2022 Toggle snap", width / 2, height - 8);
+      }
     },
 
     _drawMarkers: function () {
@@ -1408,7 +1560,7 @@
       this._arrow(mex, mey, aRad);
       noStroke(); fill(c.vertex); circle(this._cx, this._cy, 12);
       fill(255); circle(this._cx, this._cy, 4);
-      var hov = dist(mouseX, mouseY, mex, mey) < this._handleR + 10;
+      var hov = dist(mouseX, mouseY, mex, mey) < this._handleR + (_isTouch ? 20 : 10);
       if (this._isDragging || hov) {
         noFill(); stroke(c.handle); strokeWeight(2.5);
         circle(mex, mey, this._handleR * 2 + 12);
@@ -1443,20 +1595,22 @@
         line(this._cx + sq, this._cy, this._cx + sq, this._cy - sq);
         line(this._cx + sq, this._cy - sq, this._cx, this._cy - sq);
       }
-      var midR = -radians(deg / 2), lr = this._arcR + 18;
-      noStroke(); fill(c.accent); textSize(14); textStyle(BOLD); textAlign(CENTER, CENTER);
-      text(Math.round(this._angle * 10) / 10 + "\u00B0",
-        this._cx + cos(midR) * lr, this._cy + sin(midR) * lr);
-      textStyle(NORMAL);
+      if (!this._mobileMode) {
+        var midR = -radians(deg / 2), lr = this._arcR + 18;
+        noStroke(); fill(c.accent); textSize(14); textStyle(BOLD); textAlign(CENTER, CENTER);
+        text(Math.round(this._angle * 10) / 10 + "\u00B0",
+          this._cx + cos(midR) * lr, this._cy + sin(midR) * lr);
+        textStyle(NORMAL);
+      }
     },
 
     _drawPtLabels: function () {
       var aRad = -radians(this._angle), off = 24, c = this._cols;
       var pA = this.o.pointLabels[0], pB = this.o.pointLabels[1], pC = this.o.pointLabels[2];
-      noStroke(); textSize(15); textStyle(BOLD); textAlign(CENTER, CENTER);
+      noStroke(); textSize(rTextSize(15)); textStyle(BOLD); textAlign(CENTER, CENTER);
       fill(c.ray); text(pC, this._cx + this._rayLen + off, this._cy);
       fill(c.handle); text(pA, this._cx + cos(aRad) * (this._rayLen + off), this._cy + sin(aRad) * (this._rayLen + off));
-      fill(c.vertex); text(pB, this._cx - 18, this._cy + 18);
+      fill(c.vertex); text(pB, this._cx - 16, this._cy + 16);
       textStyle(NORMAL);
     },
 
@@ -1505,6 +1659,11 @@
     },
 
     mousePressed: function () {
+      // Mobile: tap name area to cycle naming style
+      if (this._mobileMode && this._mobileNameBtn && insideBtn(this._mobileNameBtn)) {
+        this._activeNameStyle = (this._activeNameStyle + 1) % 3;
+        return;
+      }
       for (var i = 0; i < this._quickBtns.length; i++) {
         if (insideBtn(this._quickBtns[i])) { this._targetAngle = this._quickBtns[i].angle; return; }
       }
@@ -1515,9 +1674,10 @@
       var aRad = -radians(this._angle);
       var hx = this._cx + cos(aRad) * this._rayLen;
       var hy = this._cy + sin(aRad) * this._rayLen;
-      if (dist(mouseX, mouseY, hx, hy) < this._handleR + 14) { this._isDragging = true; return; }
+      var hr = this._handleR + (_isTouch ? 24 : 14);
+      if (dist(mouseX, mouseY, hx, hy) < hr) { this._isDragging = true; return; }
       var dC = dist(mouseX, mouseY, this._cx, this._cy);
-      if (dC > 25 && dC < this._rayLen + 50 &&
+      if (dC > 20 && dC < this._rayLen + 50 &&
           mouseX > this._leftW && mouseX < width - this._rightW &&
           mouseY > this._topH && mouseY < height - this._botH) {
         this._isDragging = true; this._updAngle();

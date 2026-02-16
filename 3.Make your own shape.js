@@ -1,7 +1,9 @@
-let axisY = 400;
-let axisStartX = 100;
-let axisEndX = 700;
+const ORIG_W = 800;
+const ORIG_H = 600;
 
+let axisY;
+let axisStartX;
+let axisEndX;
 
 let minValue = 0;
 let maxValue = 10;
@@ -10,12 +12,27 @@ let tickSpacing = 1;
 
 
 
-let dotX = 100;
+let dotX;
 let isDragging = false;
 
 function setup() {
-    createCanvas(800,600);
+    createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
     textAlign(CENTER,CENTER);
+    updateAxisLayout();
+    dotX = axisStartX;
+}
+
+function windowResized() {
+    resizeCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
+    let value = map(dotX, axisStartX, axisEndX, minValue, maxValue);
+    updateAxisLayout();
+    dotX = map(value, minValue, maxValue, axisStartX, axisEndX);
+}
+
+function updateAxisLayout() {
+    axisY = height * 0.67;
+    axisStartX = width * 0.125;
+    axisEndX = width * 0.875;
 }
 
 

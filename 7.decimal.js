@@ -6,6 +6,7 @@
 // ==============================
 // Config
 // ==============================
+const ORIG_W = 900, ORIG_H = 900;
 const step = 0.1;
 const maxStepsToShow = 40; // safety (prevents too many arches)
 
@@ -28,10 +29,10 @@ let isDragging = false;
 let aValue = 14;
 
 // UI (canvas button)
-const tryBtn = { x: 20, y: 20, w: 90, h: 36 };
+let tryBtn = { x: 20, y: 20, w: 90, h: 36 };
 
 function setup() {
-  createCanvas(900, 900);
+  createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
   textFont("Arial");
   textAlign(CENTER, CENTER);
 
@@ -43,7 +44,7 @@ function setup() {
 function draw() {
   // Some preview runners may not call setup() consistently; make initialization resilient.
   if (!initialized) {
-    if (typeof createCanvas === "function") createCanvas(900, 420);
+    if (typeof createCanvas === "function") createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
     if (typeof textFont === "function") textFont("Arial");
     if (typeof textAlign === "function") textAlign(CENTER, CENTER);
     updateLayout();
@@ -94,8 +95,16 @@ function drawTryButton() {
 
 function updateLayout() {
   axisY = height * 0.55;
-  axisStartX = 120;
-  axisEndX = width - 120;
+  const margin = Math.min(120, width * 0.13);
+  axisStartX = margin;
+  axisEndX = width - margin;
+  tryBtn.x = Math.min(20, width * 0.022);
+  tryBtn.y = Math.min(20, height * 0.022);
+}
+
+function windowResized() {
+  resizeCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
+  updateLayout();
 }
 
 function drawNumberLine() {

@@ -8,6 +8,7 @@
 // ==============================
 // Config
 // ==============================
+const ORIG_W = 900, ORIG_H = 740;
 const minValue = -20;
 const maxValue = 20;
 const tickSpacing = 1;
@@ -48,9 +49,7 @@ const labelPersonB = "Rippa";
 
 // Bar visual config – generous spacing to avoid overlap
 const barH = 16;
-const barRow1Offset = 78;    // below axisY
-const barRow2Offset = 134;   // generous gap between row 1 and row 2
-const resultBarOffset = 248; // plenty of room for explanation text above
+let barRow1Offset, barRow2Offset, resultBarOffset;
 
 // Inline fallbacks for p5canvas / when assets-data.js is not loaded
 // (kid.png = Eon, me.png = Rippa)
@@ -70,7 +69,7 @@ function easeInOut(t) {
 // Setup
 // ==============================
 async function setup() {
-  createCanvas(900, 740);
+  createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
   textFont("Arial");
   textAlign(CENTER, CENTER);
   updateLayout();
@@ -95,7 +94,7 @@ async function setup() {
 // ==============================
 function draw() {
   if (!initialized) {
-    if (typeof createCanvas === "function") createCanvas(900, 740);
+    if (typeof createCanvas === "function") createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
     if (typeof textFont === "function") textFont("Arial");
     if (typeof textAlign === "function") textAlign(CENTER, CENTER);
     updateLayout();
@@ -126,15 +125,26 @@ function draw() {
 }
 
 function updateLayout() {
-  axisY = 210;
-  axisStartX = 80;
-  axisEndX = width - 80;
+  axisY = height * (210 / 740);
+  const marginX = Math.min(80, width * 0.09);
+  axisStartX = marginX;
+  axisEndX = width - marginX;
+
+  barRow1Offset = Math.round(height * 0.105);
+  barRow2Offset = Math.round(height * 0.181);
+  resultBarOffset = Math.round(height * 0.335);
+
   newDistBtn.x = width - newDistBtn.w - 24;
   newDistBtn.y = height - 52;
   calcBtn.x = (width - calcBtn.w) / 2;
   calcBtn.y = height - 56;
   resetBtn.x = (width - resetBtn.w) / 2;
   resetBtn.y = height - 52;
+}
+
+function windowResized() {
+  resizeCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
+  updateLayout();
 }
 
 // ==============================

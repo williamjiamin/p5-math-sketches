@@ -2,56 +2,108 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>p5 runner</title>
     <style>
-      html, body { margin: 0; padding: 0; background: #f8f9fa; overflow: hidden; }
-      canvas { display: block; margin: 0 auto; }
+      html, body {
+        margin: 0; padding: 0;
+        width: 100%; height: 100%;
+        background: #f8f9fa;
+        overflow: hidden;
+        touch-action: none;
+        -webkit-overflow-scrolling: none;
+        overscroll-behavior: none;
+      }
+      canvas {
+        display: block;
+        margin: 0 auto;
+        touch-action: none;
+        -ms-touch-action: none;
+      }
     </style>
     <script>
-      // Prevent middle-click auto-scroll and context menu inside the runner
+      // Prevent middle-click auto-scroll and context menu
       document.addEventListener('mousedown', function(e) {
-        if (e.button === 1) { e.preventDefault(); }
+        if (e.button === 1) e.preventDefault();
       });
       document.addEventListener('auxclick', function(e) {
-        if (e.button === 1) { e.preventDefault(); }
+        if (e.button === 1) e.preventDefault();
       });
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+      });
+
+      // Prevent default touch behaviors (scrolling, zooming) on the canvas
+      document.addEventListener('touchstart', function(e) {
+        if (e.target.tagName === 'CANVAS' || e.target.tagName === 'BODY') {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      document.addEventListener('touchmove', function(e) {
+        if (e.target.tagName === 'CANVAS' || e.target.tagName === 'BODY') {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      document.addEventListener('touchend', function(e) {
+        if (e.target.tagName === 'CANVAS' || e.target.tagName === 'BODY') {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      // Provide a global helper for sketches to detect mobile
+      window._RIPPA_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        || (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
+      window._RIPPA_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     </script>
   </head>
   <body>
     <script>
-      const params = new URLSearchParams(location.search);
-      const sketch = params.get("sketch") || "";
-      const v = params.get("v") || "1.11.11";
+      var params = new URLSearchParams(location.search);
+      var sketch = params.get("sketch") || "";
+      var v = params.get("v") || "1.11.11";
 
-      // Load p5 first, then the sketch, so global-mode sketches work.
       function loadScript(src) {
-        return new Promise((resolve, reject) => {
-          const s = document.createElement("script");
+        return new Promise(function(resolve, reject) {
+          var s = document.createElement("script");
           s.src = src;
-          s.onload = () => resolve();
-          s.onerror = () => reject(new Error("Failed to load: " + src));
+          s.onload = function() { resolve(); };
+          s.onerror = function() { reject(new Error("Failed to load: " + src)); };
           document.head.appendChild(s);
         });
       }
 
-      (async () => {
+      (async function() {
         if (!sketch) {
-          document.body.innerHTML = "<div style='font-family: Arial; padding: 16px; color:#444'>No sketch selected.</div>";
+          document.body.innerHTML = "<div style='font-family:system-ui;padding:24px;color:#888;text-align:center;'>No sketch selected.</div>";
           return;
         }
 
         try {
-          const cacheBust = "?t=" + Date.now();
-          await loadScript(`https://cdn.jsdelivr.net/npm/p5@${encodeURIComponent(v)}/lib/p5.min.js`);
+          var cacheBust = "?t=" + Date.now();
+          await loadScript("https://cdn.jsdelivr.net/npm/p5@" + encodeURIComponent(v) + "/lib/p5.min.js");
+
+          // After p5 loads, override createCanvas to be responsive
+          var _origCreateCanvas = window.createCanvas;
+          window.createCanvas = function(w, h, renderer) {
+            // On mobile/small screens, fit canvas to available space
+            var maxW = window.innerWidth;
+            var maxH = window.innerHeight;
+            if (w > maxW || h > maxH) {
+              var scale = Math.min(maxW / w, maxH / h);
+              w = Math.floor(w * scale);
+              h = Math.floor(h * scale);
+            }
+            return _origCreateCanvas.call(this, w, h, renderer);
+          };
+
           try { await loadScript("assets-data.js" + cacheBust); } catch (e) { /* optional */ }
-          await loadScript(`./${sketch}` + cacheBust);
+          await loadScript("./" + sketch + cacheBust);
         } catch (e) {
           document.body.innerHTML =
-            "<pre style='font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 16px; color:#b00020; white-space: pre-wrap;'>" +
+            "<pre style='font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;padding:16px;color:#b00020;white-space:pre-wrap;word-break:break-all;'>" +
             String(e && e.stack ? e.stack : e) +
             "</pre>";
         }
@@ -59,4 +111,3 @@
     </script>
   </body>
 </html>
-

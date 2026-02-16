@@ -7,6 +7,7 @@
 // ==============================
 // Config
 // ==============================
+const ORIG_W = 900, ORIG_H = 500;
 const minValue = -20;
 const maxValue = 20;
 const tickSpacing = 1;
@@ -48,7 +49,7 @@ const ASSET_KID_DATA_FALLBACK = "data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABA
 // Setup (async image loading)
 // ==============================
 async function setup() {
-  createCanvas(900, 500);
+  createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
   textFont("Arial");
   textAlign(CENTER, CENTER);
   updateLayout();
@@ -77,7 +78,7 @@ async function setup() {
 
 function draw() {
   if (!initialized) {
-    if (typeof createCanvas === "function") createCanvas(900, 500);
+    if (typeof createCanvas === "function") createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
     if (typeof textFont === "function") textFont("Arial");
     if (typeof textAlign === "function") textAlign(CENTER, CENTER);
     updateLayout();
@@ -99,10 +100,16 @@ function draw() {
 
 function updateLayout() {
   axisY = height * 0.5;
-  axisStartX = 80;
-  axisEndX = width - 80;
+  const margin = Math.min(80, width * 0.09);
+  axisStartX = margin;
+  axisEndX = width - margin;
   newDistBtn.x = width - newDistBtn.w - 24;
   newDistBtn.y = height - 56;
+}
+
+function windowResized() {
+  resizeCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
+  updateLayout();
 }
 
 // ==============================

@@ -14,6 +14,7 @@
 // ==============================
 // Config
 // ==============================
+const ORIG_W = 900, ORIG_H = 740;
 var gridMin = -10;
 var gridMax = 10;
 var gridSize = gridMax - gridMin;
@@ -126,7 +127,7 @@ function easeInBack(t) {
 // Setup
 // ==============================
 async function setup() {
-  createCanvas(canvasW, canvasH);
+  createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
   textFont("Arial");
   textAlign(CENTER, CENTER);
   updateLayout();
@@ -151,6 +152,8 @@ async function setup() {
 // Layout
 // ==============================
 function updateLayout() {
+  canvasW = width;
+  canvasH = height;
   var padLeft = 80, padRight = 80, padTop = 55, padBot = 120;
   var areaW = canvasW - padLeft - padRight;
   var areaH = canvasH - padTop - padBot;
@@ -178,15 +181,13 @@ function updateLayout() {
   var inputRowY = panelTop + 48;
   var cx = canvasW / 2;
 
-  // X group: minus at 174, display centered at 252, plus at 288
-  xMinusBtn.x = 174; xMinusBtn.y = inputRowY - 21;
-  xPlusBtn.x  = 288; xPlusBtn.y  = inputRowY - 21;
-  // Y group: minus at 402, display centered at 480, plus at 516
-  yMinusBtn.x = 402; yMinusBtn.y = inputRowY - 21;
-  yPlusBtn.x  = 516; yPlusBtn.y  = inputRowY - 21;
-
-  // FIND button
-  findBtn.x = 600; findBtn.y = inputRowY - 26;
+  // X group, Y group, FIND button – proportional to canvas width (originally 900)
+  var r = canvasW / 900;
+  xMinusBtn.x = Math.round(174 * r); xMinusBtn.y = inputRowY - 21;
+  xPlusBtn.x  = Math.round(288 * r); xPlusBtn.y  = inputRowY - 21;
+  yMinusBtn.x = Math.round(402 * r); yMinusBtn.y = inputRowY - 21;
+  yPlusBtn.x  = Math.round(516 * r); yPlusBtn.y  = inputRowY - 21;
+  findBtn.x   = Math.round(600 * r); findBtn.y   = inputRowY - 26;
 
   // New Game / Try Again buttons
   newGameBtn.x = cx - newGameBtn.w / 2;
@@ -197,6 +198,11 @@ function updateLayout() {
   // Replay intro button (small, top-right corner)
   replayBtn.x = canvasW - replayBtn.w - 10;
   replayBtn.y = 6;
+}
+
+function windowResized() {
+  resizeCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
+  updateLayout();
 }
 
 // ==============================
@@ -231,7 +237,7 @@ function skipToGame() {
 // ==============================
 function draw() {
   if (!initialized) {
-    if (typeof createCanvas === "function") createCanvas(canvasW, canvasH);
+    if (typeof createCanvas === "function") createCanvas(Math.min(ORIG_W, windowWidth), Math.min(ORIG_H, windowHeight));
     if (typeof textFont === "function") textFont("Arial");
     if (typeof textAlign === "function") textAlign(CENTER, CENTER);
     updateLayout();
