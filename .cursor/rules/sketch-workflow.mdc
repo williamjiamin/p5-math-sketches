@@ -19,16 +19,21 @@ This updates `sketches-list.js` and `sketches.json` so `index.html` can load the
 
 **Verify** the output lists the correct number of sketches and includes the new file.
 
-## 2. Update the README sketch table
+## 2. Update the hardcoded fallback list in index.html
+
+`index.html` has a hardcoded fallback array inside the `getSketchList()` function (look for `list.push(...)`). Add the new sketch filename to that array. This fallback is used when `sketches-list.js` fails to load.
+
+## 3. Update the README sketch table
 
 Open `README.md` and add/update the row in the `## Sketches` table to match the new file. Keep the table sorted by sketch number.
 
-## 3. Commit and push (when user asks)
+## 4. Commit and push (when user asks)
 
 When committing, always include these files in the same commit:
 - The new/changed sketch `.js` file
 - `sketches-list.js` (auto-generated)
 - `sketches.json` (auto-generated)
+- `index.html` (updated fallback list)
 - `README.md` (updated table)
 
 ## Naming convention
