@@ -26,6 +26,7 @@ Interactive math visualizations built with [p5.js](https://p5js.org/), designed 
 | 14 | 3D Coordinate Free Movement | Free-roam 3D coordinate explorer |
 | 15 | Angle | Interactive angle explorer with types |
 | 16 | Angle Complementary and Supplementary | Complementary & supplementary angles with random generation and animation |
+| 17 | Angle of Polygons | Sum of interior angles via triangle decomposition with animation |
 
 ## How to Run
 

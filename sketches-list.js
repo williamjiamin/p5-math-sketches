@@ -15,5 +15,6 @@ window.SKETCH_LIST = [
   "13.3D Coordinate.js",
   "14.3D Coordinate free movement.js",
   "15.Angle.js",
-  "16.Angle Complimentary and Supplementary .js"
+  "16.Angle Complimentary and Supplementary .js",
+  "17.Angle of Polygons.js"
 ];
