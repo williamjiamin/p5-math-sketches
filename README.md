@@ -1,6 +1,10 @@
-# p5.js Math Sketches
+# RippaMathCore
 
-Interactive math visualizations built with [p5.js](https://p5js.org/), designed for teaching number line concepts, absolute value, distance, and more.
+Interactive math visualizations built with [p5.js](https://p5js.org/), designed for teaching number lines, coordinates, angles, and more.
+
+## Live Demo
+
+**https://williamjiamin.github.io/RippaMathCore/**
 
 ## Sketches
 
@@ -16,6 +20,12 @@ Interactive math visualizations built with [p5.js](https://p5js.org/), designed 
 | 8 | Absolute Value | Absolute value with profile pics |
 | 9 | Distance Between | Distance between two points |
 | 10 | Distance Between Calculation | Animated distance calculation with bar subtraction |
+| 11 | Coordinate | Interactive coordinate plane |
+| 12 | Coordinate Practice | Coordinate plotting exercises |
+| 13 | 3D Coordinate | 3D coordinate system visualization |
+| 14 | 3D Coordinate Free Movement | Free-roam 3D coordinate explorer |
+| 15 | Angle | Interactive angle explorer with types |
+| 16 | Angle Complementary and Supplementary | Complementary & supplementary angles with random generation and animation |
 
 ## How to Run
 
@@ -102,24 +112,20 @@ When `index.html` loads, it reads the sketch list from `sketches-list.js` (loade
 
 If `sketches-list.js` is missing, it falls back to a hardcoded list inside `index.html`.
 
-## Live Demo (GitHub Pages)
+## Deployment
 
-All sketches are deployed automatically and playable at:
-
-**https://williamjiamin.github.io/p5-math-sketches/**
-
-Every push to `master` triggers an automatic re-deploy via GitHub Actions.
+All sketches are deployed automatically via GitHub Actions on every push to `master`.
 
 ## Mobile Workflow (Coding & Testing from Your Phone)
 
 ### Testing Sketches on Phone
-Just open **https://williamjiamin.github.io/p5-math-sketches/** in your phone's browser. Pick a sketch from the dropdown and it runs instantly — no install needed.
+Just open **https://williamjiamin.github.io/RippaMathCore/** in your phone's browser. Pick a sketch from the dropdown and it runs instantly — no install needed.
 
 ### Editing Code from Phone
 You have several options, from easiest to most powerful:
 
 1. **github.dev (VS Code in browser)**
-   - Go to your repo: `https://github.com/williamjiamin/p5-math-sketches`
+   - Go to your repo: `https://github.com/williamjiamin/RippaMathCore`
    - Press the `.` key (period) or change `github.com` to `github.dev` in the URL
    - Opens a full VS Code editor in your browser — works on phone!
    - Commit changes directly from the editor
