@@ -1,0 +1,40 @@
+---
+description: Mandatory workflow when creating, renaming, or deleting sketch .js files in this p5.js math project
+alwaysApply: true
+---
+
+# Sketch File Workflow
+
+Every time you **create, rename, or delete** a numbered sketch `.js` file (e.g. `17.My Sketch.js`), you MUST perform ALL of the following steps before finishing:
+
+## 1. Regenerate the sketch list
+
+Run this command (the node binary is at `/opt/homebrew/bin/node`):
+
+```bash
+export PATH="/opt/homebrew/bin:$PATH" && node update-sketches.js
+```
+
+This updates `sketches-list.js` and `sketches.json` so `index.html` can load the new sketch.
+
+**Verify** the output lists the correct number of sketches and includes the new file.
+
+## 2. Update the README sketch table
+
+Open `README.md` and add/update the row in the `## Sketches` table to match the new file. Keep the table sorted by sketch number.
+
+## 3. Commit and push (when user asks)
+
+When committing, always include these files in the same commit:
+- The new/changed sketch `.js` file
+- `sketches-list.js` (auto-generated)
+- `sketches.json` (auto-generated)
+- `README.md` (updated table)
+
+## Naming convention
+
+Sketch files follow the pattern: `{number}.{Title}.js` — e.g. `16.Angle Complimentary and Supplementary .js`
+
+## Common mistake to avoid
+
+NEVER commit a new sketch without running `node update-sketches.js` first. The sketch will not appear in the browser dropdown if the list files are stale.
