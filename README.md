@@ -27,6 +27,22 @@ Interactive math visualizations built with [p5.js](https://p5js.org/), designed 
 | 15 | Angle | Interactive angle explorer with types |
 | 16 | Angle Complementary and Supplementary | Complementary & supplementary angles with random generation and animation |
 | 17 | Angle of Polygons | Sum of interior angles via triangle decomposition with animation |
+| 18 | Counting Objects | Interactive counting visualization with grouping by 10s |
+| 19 | Counting Practice | Counting quiz with score tracking and feedback |
+| 20 | Place Value Blocks | Visual base-10 block decomposition (ones, tens, hundreds) |
+| 21 | Place Value Builder | Build a target number by adding place value blocks |
+| 22 | Addition on Number Line | Animated addition with hop visualization on a number line |
+| 23 | Subtraction on Number Line | Animated subtraction with backward hops on a number line |
+| 24 | Add & Subtract Practice | Interactive addition and subtraction exercise with scoring |
+| 25 | Multiplication Arrays | Visual multiplication using dot arrays and area model |
+| 26 | Division Sharing | Animated fair-sharing division with round-robin distribution and remainders |
+| 27 | Times Table Grid | Interactive 12×12 multiplication table with hover highlights and quiz mode |
+| 28 | Multiply & Divide Challenge | Multiplication and division practice with visual arrays and streak scoring |
+| 29 | Fraction Bars | Visual fraction tape diagrams with equivalent fractions and animated splitting |
+| 30 | Fraction Circles | Pie-chart style fraction visualization with equivalents |
+| 31 | Fractions on the Number Line | Place and drag fractions on a number line |
+| 32 | Fraction Operations | Visual addition and subtraction of fractions with LCD |
+| 33 | Fraction Practice | Fraction exercise module with difficulty levels and scoring |
 
 ## How to Run
 
